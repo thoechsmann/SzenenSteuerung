@@ -48,6 +48,7 @@ class SzenenSteuerung extends IPSModule {
 				
 			}
 		}
+
 		//Delete excessive Scences 
 		$ChildrenIDsCount = sizeof(IPS_GetChildrenIDs($this->InstanceID))/2;
 		if($ChildrenIDsCount > $this->ReadPropertyInteger("SceneCount")) {
@@ -56,6 +57,14 @@ class SzenenSteuerung extends IPSModule {
 				IPS_DeleteVariable(IPS_GetObjectIDByIdent("Scene".$j."Data", $this->InstanceID));
 			}
 		}
+
+        for($k = 1; $k <= $this->ReadPropertyInteger("SceneCount"); $k++) {
+            $data = wddx_deserialize(GetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID)));
+
+            if ($data !== NULL) {
+                SetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID), json_encode($data));
+            }
+        }
 	}
 
 	public function RequestAction($Ident, $Value) {
@@ -99,12 +108,17 @@ class SzenenSteuerung extends IPSModule {
 				}
 			}
 		}
-		SetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID), wddx_serialize_value($data));
+		SetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID), json_encode($data));
 	}
 
 	private function CallValues($SceneIdent) {
-		
-		$data = wddx_deserialize(GetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID)));
+	    $value = GetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID));
+
+	    $data = json_decode($value);
+
+	    if ($data === NULL) {
+	        $data = wddx_deserialize($value);
+        }
 		
 		if($data != NULL) {
 			foreach($data as $id => $value) {
