@@ -16,7 +16,7 @@ Die zu schaltenden Variablen müssen dazu im "Targets" Ordner verlinkt werden.
 
 * Ermöglicht das Speichern und Ausführen von verlinkten Variablen über Szenen.
 * Darstellung und Bedienung via WebFront und mobilen Apps
-* WDDX kodierte Speicherung von Szenendaten
+* JSON kodierte Speicherung von Szenendaten
 
 ### 2. Voraussetzungen
 
@@ -48,7 +48,7 @@ Name      | Typ       | Beschreibung
 --------- | --------- | ----------------
 Targets   | Kategorie | Beinhaltet die verlinkten Variablen, deren Werte gespeichert und wieder aufgerufen werden sollen.
 Scene     | Integer   | Zur Anzeige im WebFront und den mobilen Apps. Ruft "Speichern" oder "Ausführen" auf.
-SceneData | String    | Speichert WDDX kodierte Datensätze für die jeweilige Szene
+SceneData | String    | Speichert JSON kodierte Datensätze für die jeweilige Szene
 
 ##### Profile:
 
