@@ -6,8 +6,12 @@ class SzenenSteuerung extends IPSModule {
 		parent::Create();
 
 		//Properties
-		$this->RegisterPropertyInteger("SceneCount", 3);
-		
+		$this->RegisterPropertyInteger("SceneCount", 5);
+        
+       
+        
+        
+        
 		if(!IPS_VariableProfileExists("SZS.SceneControl")){
 			IPS_CreateVariableProfile("SZS.SceneControl", 1);
 			IPS_SetVariableProfileValues("SZS.SceneControl", 1, 2, 0);
@@ -65,6 +69,16 @@ class SzenenSteuerung extends IPSModule {
                 SetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID), json_encode($data));
             }
         }
+        
+        for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
+            $this->RegisterAttributeString("Scene".$i."Data", "Debug");
+            
+        }
+		
+        for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
+            IPS_LogMessage("AttributeCreator", $this->ReadAttributeString("Scene".$i."Data"));
+        }
+        
 	}
 
 	public function RequestAction($Ident, $Value) {
@@ -108,11 +122,12 @@ class SzenenSteuerung extends IPSModule {
 				}
 			}
 		}
-		SetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID), json_encode($data));
+		$this->WriteAttributeString($SceneIdent."Data", json_encode($data) );
+        IPS_LogMessage("AttributeCreator", $SceneIdent);                                                                                                     //Ändern
 	}
 
 	private function CallValues($SceneIdent) {
-	    $value = GetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID));
+	    $value = $this->ReadAttributeString($SceneIdent."Data");																	//Ändern
 
 	    $data = json_decode($value);
 
