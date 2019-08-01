@@ -7,11 +7,9 @@ class SzenenSteuerung extends IPSModule {
 
 		//Properties
 		$this->RegisterPropertyInteger("SceneCount", 5);
-        
-       
-        
-        
-        
+		$this->RegisterAttributeString("SceneData", "[]");
+		
+		                        
 		if(!IPS_VariableProfileExists("SZS.SceneControl")){
 			IPS_CreateVariableProfile("SZS.SceneControl", 1);
 			IPS_SetVariableProfileValues("SZS.SceneControl", 1, 2, 0);
@@ -34,51 +32,65 @@ class SzenenSteuerung extends IPSModule {
 		$this->CreateCategoryByIdent($this->InstanceID, "Targets", "Targets");
 		
 		for($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
-			if(@IPS_GetObjectIDByIdent("Scene".$i, $this->InstanceID) === false){
-				//Scene
-				$vid = IPS_CreateVariable(1 /* Scene */);
-				IPS_SetParent($vid, $this->InstanceID);
-				IPS_SetName($vid, "Scene".$i);
-				IPS_SetIdent($vid, "Scene".$i);
-				IPS_SetVariableCustomProfile($vid, "SZS.SceneControl");
-				$this->EnableAction("Scene".$i);
-				SetValue($vid, 2);
-				//SceneData
-				$vid = IPS_CreateVariable(3 /* SceneData */);
-				IPS_SetParent($vid, $this->InstanceID);
-				IPS_SetName($vid, "Scene".$i."Data");
-				IPS_SetIdent($vid, "Scene".$i."Data");
-				IPS_SetHidden($vid, true);
-				
-			}
-		}
-
-		//Delete excessive Scences 
-		$ChildrenIDsCount = sizeof(IPS_GetChildrenIDs($this->InstanceID))/2;
-		if($ChildrenIDsCount > $this->ReadPropertyInteger("SceneCount")) {
-			for($j = $this->ReadPropertyInteger("SceneCount")+1; $j <= $ChildrenIDsCount; $j++) {
-				IPS_DeleteVariable(IPS_GetObjectIDByIdent("Scene".$j, $this->InstanceID));
-				IPS_DeleteVariable(IPS_GetObjectIDByIdent("Scene".$j."Data", $this->InstanceID));
-			}
+			$variableID = $this->RegisterVariableInteger("Scene".$i, "Scene".$i, "SZS.SceneControl");
+			$this->EnableAction("Scene".$i);
+			SetValue($variableID, 2);
 		}
 
         for($k = 1; $k <= $this->ReadPropertyInteger("SceneCount"); $k++) {
-            $data = wddx_deserialize(GetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID)));
+			$SceneDataID = @$this->GetIDForIdent("Scene".$i."Data");
+			if ($SceneDataID) {
+				
+				$data = wddx_deserialize(GetValue($SceneDataID));
+				if ($data !== NULL) {
+					SetValue($SceneDataID, json_encode($data));
+				}
+			}
+        }
+		$SceneData = json_decode($this->ReadAttributeString("SceneData"));
 
-            if ($data !== NULL) {
-                SetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID), json_encode($data));
-            }
-        }
-        
-        for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
-            $this->RegisterAttributeString("Scene".$i."Data", "Debug");
-            
-        }
+		if (!is_array($SceneData)) {
+			$SceneData = [];
+		}
+	
+		for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
+			$ObjectID = @$this->GetIDForIdent("Scene".$i."Data");
+			if(!array_key_exists($i - 1, $SceneData)) {
+				if($ObjectID) {
+					$SceneData[$i - 1] = json_decode(GetValue($ObjectID));
+				}
+				else {
+					$SceneData[$i - 1] = new stdClass;
+				}
+			}
+
+			if ($ObjectID) {
+				$this->UnregisterVariable("Scene".$i."Data");
+			}
+			
+			if (!@$this->GetIDForIdent("Scene".$i)){
+				$this->RegisterStringVariable("Scene".$i);
+			}
+		}	
 		
-        for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
-            IPS_LogMessage("AttributeCreator", $this->ReadAttributeString("Scene".$i."Data"));
-        }
-        
+		$this->WriteAttributeString("SceneData", json_encode($SceneData));
+
+		$SceneCount = $this->ReadPropertyInteger("SceneCount") + 1;
+	
+	
+		for ($i = $SceneCount; ; $i++) {
+			if (@$this->GetIDForIdent("Scene".$i)){
+				$this->UnregisterVariable("Scene".$i);
+				
+				if (@$this->GetIDForIdent("Scene".$i."Data")){
+					$this->UnregisterVariable("Scene".$i."Data");
+				}
+			}else {
+				break;
+			}
+						
+		}
+
 	}
 
 	public function RequestAction($Ident, $Value) {
@@ -122,14 +134,24 @@ class SzenenSteuerung extends IPSModule {
 				}
 			}
 		}
-		$this->WriteAttributeString($SceneIdent."Data", json_encode($data) );
-        IPS_LogMessage("AttributeCreator", $SceneIdent);                                                                                                     //Ändern
+		
+		$sceneData = json_decode($this->ReadAttributeString("SceneData"));
+
+		$i = intval(substr($SceneIdent, -1)); 
+
+		$sceneData[$i -1] = $data;
+		
+		$this->WriteAttributeString("SceneData", json_encode($sceneData));
+				
 	}
 
 	private function CallValues($SceneIdent) {
-	    $value = $this->ReadAttributeString($SceneIdent."Data");																	//Ändern
-
-	    $data = json_decode($value);
+		
+		$SceneData = json_decode($this->ReadAttributeString("SceneData"));
+		
+		$i = intval(substr($SceneIdent, -1));
+	    
+	    $data = $SceneData[$i -1 ];
 
 	    if ($data === NULL) {
 	        $data = wddx_deserialize($value);
