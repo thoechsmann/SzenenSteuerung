@@ -39,7 +39,7 @@ class SzenenSteuerung extends IPSModule {
 
         for($k = 1; $k <= $this->ReadPropertyInteger("SceneCount"); $k++) {
 			$SceneDataID = @$this->GetIDForIdent("Scene".$i."Data");
-			if ($SceneDataID) {
+			if ($SceneDataID && function_exists("wddx_deserialize")) {
 				
 				$data = wddx_deserialize(GetValue($SceneDataID));
 				if ($data !== NULL) {
@@ -57,11 +57,16 @@ class SzenenSteuerung extends IPSModule {
 			$ObjectID = @$this->GetIDForIdent("Scene".$i."Data");
 			if(!array_key_exists($i - 1, $SceneData)) {
 				if($ObjectID) {
-					$SceneData[$i - 1] = json_decode(GetValue($ObjectID));
-				}
-				else {
+					$decodedSceneData = json_decode(GetValue($ObjectID);
+					if($decodedSceneData) {
+						$SceneData[$i - 1] = $decodedSceneData;
+					} else {
+						$SceneData[$i - 1] = new stdClass;
+					}
+				} else {
 					$SceneData[$i - 1] = new stdClass;
 				}
+				
 			}
 
 			if ($ObjectID) {
