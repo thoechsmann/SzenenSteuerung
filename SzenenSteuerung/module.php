@@ -57,7 +57,7 @@ class SzenenSteuerung extends IPSModule {
 			$ObjectID = @$this->GetIDForIdent("Scene".$i."Data");
 			if(!array_key_exists($i - 1, $SceneData)) {
 				if($ObjectID) {
-					$decodedSceneData = json_decode(GetValue($ObjectID);
+					$decodedSceneData = json_decode(GetValue($ObjectID));
 					if($decodedSceneData) {
 						$SceneData[$i - 1] = $decodedSceneData;
 					} else {
