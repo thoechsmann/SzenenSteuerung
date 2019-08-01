@@ -166,11 +166,11 @@ class SzenenSteuerung extends IPSModule
 					$o = IPS_GetObject($id);
 					$v = IPS_GetVariable($id);
 
-					if ($v['VariableCustomAction'] > 0)
+					if ($v['VariableCustomAction'] > 0) {
 						$actionID = $v['VariableCustomAction'];
-					else
+					} else {
 						$actionID = $v['VariableAction'];
-
+					}
 					//Skip this device if we do not have a proper id
 					if ($actionID < 10000)
 						continue;
