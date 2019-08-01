@@ -153,10 +153,6 @@ class SzenenSteuerung extends IPSModule {
 	    
 	    $data = $SceneData[$i -1 ];
 
-	    if ($data === NULL) {
-	        $data = wddx_deserialize($value);
-        }
-		
 		if($data != NULL) {
 			foreach($data as $id => $value) {
 				if (IPS_VariableExists($id)){
