@@ -1,4 +1,4 @@
-<?
+<?php
 class SzenenSteuerung extends IPSModule {
 
 	public function Create() {
@@ -194,6 +194,4 @@ class SzenenSteuerung extends IPSModule {
 		 }
 		 return $cid;
 	}
-
 }
-?>
