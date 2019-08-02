@@ -54,16 +54,7 @@ class SzenenSteuerung extends IPSModule
 				}
 			}
 		}
-		
-		//deleting SceneData variables used in legacy
-		for ($i = $SceneCount + 1;; $i++) {
-			if (@$this->GetIDForIdent("Scene" . $i . "Data")) {
-				$this->UnregisterVariable("Scene" . $i . "Data");
-			} else {
-				break;
-			}
-		}
-
+				
 		$SceneData = json_decode($this->ReadAttributeString("SceneData"));
 		
 		//If older versions contain errors regarding SceneData SceneControl would become unusable otherwise, even in fixed versions
@@ -92,6 +83,15 @@ class SzenenSteuerung extends IPSModule
 					}
 					$this->UnregisterVariable("Scene" . $i . "Data");
 				}
+			}
+		}
+
+		//deleting SceneData variables used in legacy
+		for ($i = $SceneCount + 1;; $i++) {
+			if (@$this->GetIDForIdent("Scene" . $i . "Data")) {
+				$this->UnregisterVariable("Scene" . $i . "Data");
+			} else {
+				break;
 			}
 		}
 
