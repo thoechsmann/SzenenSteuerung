@@ -70,9 +70,6 @@ class SzenenSteuerung extends IPSModule
 			if (!array_key_exists($i - 1, $SceneData)) {
 				$SceneData[$i - 1] = new stdClass;
 			}
-			if (!@$this->GetIDForIdent("Scene" . $i)) {
-				$this->RegisterStringVariable("Scene" . $i);
-			}
 		}
 
 		for ($i = 1; $i <= $SceneCount; $i++) {
