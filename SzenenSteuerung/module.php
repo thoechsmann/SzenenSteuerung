@@ -167,13 +167,13 @@ class SzenenSteuerung extends IPSModule
 	private function CallValues($SceneIdent)
 	{
 
-		$SceneData = json_decode($this->ReadAttributeString("SceneData"));
+		$SceneData = json_decode($this->ReadAttributeString("SceneData"), true);
 
 		$i = intval(substr($SceneIdent, -1));
 
 		$data = $SceneData[$i - 1];
 
-		if ($data != NULL) {
+		if (count($data) > 0) {
 			foreach ($data as $id => $value) {
 				if (IPS_VariableExists($id)) {
 
