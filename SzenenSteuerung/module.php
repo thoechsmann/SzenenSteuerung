@@ -163,7 +163,7 @@ class SzenenSteuerung extends IPSModule
 		if ($data != NULL) {
 			foreach ($data as $id => $value) {
 				if (IPS_VariableExists($id)) {
-					$o = IPS_GetObject($id);
+
 					$v = IPS_GetVariable($id);
 
 					if ($v['VariableCustomAction'] > 0) {
@@ -175,11 +175,7 @@ class SzenenSteuerung extends IPSModule
 					if ($actionID < 10000)
 						continue;
 
-					if (IPS_InstanceExists($actionID)) {
-						IPS_RequestAction($actionID, $o['ObjectIdent'], $value);
-					} else if (IPS_ScriptExists($actionID)) {
-						echo IPS_RunScriptWaitEx($actionID, array("VARIABLE" => $id, "VALUE" => $value));
-					}
+					RequestAction($id, $value);
 				}
 			}
 		} else {
