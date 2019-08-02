@@ -9,8 +9,8 @@ class SzenenSteuerung extends IPSModule
 
 		//Properties
 		$this->RegisterPropertyInteger("SceneCount", 5);
+		//Attributes
 		$this->RegisterAttributeString("SceneData", "[]");
-
 
 		if (!IPS_VariableProfileExists("SZS.SceneControl")) {
 			IPS_CreateVariableProfile("SZS.SceneControl", 1);
@@ -36,6 +36,7 @@ class SzenenSteuerung extends IPSModule
 
 		$SceneCount = $this->ReadPropertyInteger("SceneCount");
 
+		//create Scene variables
 		for ($i = 1; $i <= $SceneCount; $i++) {
 			$variableID = $this->RegisterVariableInteger("Scene" . $i, "Scene" . $i, "SZS.SceneControl");
 			$this->EnableAction("Scene" . $i);
@@ -43,7 +44,6 @@ class SzenenSteuerung extends IPSModule
 		}
 
 		//Import from WDDX data into new JSON data
-
 		for ($i = 1; $i <= $SceneCount; $i++) {
 			$SceneDataID = @$this->GetIDForIdent("Scene" . $i . "Data");
 			if ($SceneDataID && function_exists("wddx_deserialize")) {
@@ -72,7 +72,6 @@ class SzenenSteuerung extends IPSModule
 		}
 
 		//Preparing SceneData for later use
-
 		$SceneCount = $this->ReadPropertyInteger("SceneCount");
 
 		for ($i = 1; $i <= $SceneCount; $i++) {
