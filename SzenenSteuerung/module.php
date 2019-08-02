@@ -138,7 +138,7 @@ class SzenenSteuerung extends IPSModule
 	{
 
 		$targetIDs = IPS_GetObjectIDByIdent("Targets", $this->InstanceID);
-		$data = array();
+		$data = [];
 
 		//We want to save all Lamp Values
 		foreach (IPS_GetChildrenIDs($targetIDs) as $TargetID) {
