@@ -40,7 +40,9 @@ class SzenenSteuerung extends IPSModule
 			SetValue($variableID, 2);
 		}
 
-		for ($k = 1; $k <= $this->ReadPropertyInteger("SceneCount"); $k++) {
+		//Import from WDDX data into new JSON data
+
+		for ($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
 			$SceneDataID = @$this->GetIDForIdent("Scene" . $i . "Data");
 			if ($SceneDataID && function_exists("wddx_deserialize")) {
 
