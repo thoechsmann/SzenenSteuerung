@@ -36,7 +36,7 @@ class SzenenSteuerung extends IPSModule
 
 		$SceneCount = $this->ReadPropertyInteger("SceneCount");
 
-		//create Scene variables
+		//Create Scene variables
 		for ($i = 1; $i <= $SceneCount; $i++) {
 			$variableID = $this->RegisterVariableInteger("Scene" . $i, "Scene" . $i, "SZS.SceneControl");
 			$this->EnableAction("Scene" . $i);
@@ -72,7 +72,7 @@ class SzenenSteuerung extends IPSModule
 			
 		}
 
-		//getting data from legacy SceneData variables to put them in new SceneData attribute 
+		//Getting data from legacy SceneData variables to put them in new SceneData attribute 
 		for ($i = 1; $i <= $SceneCount; $i++) {
 			$ObjectID = @$this->GetIDForIdent("Scene" . $i . "Data");
 			if (!array_key_exists($i - 1, $SceneData)) {
@@ -86,7 +86,7 @@ class SzenenSteuerung extends IPSModule
 			}
 		}
 
-		//deleting SceneData variables used in legacy
+		//Deleting SceneData variables used in legacy
 		for ($i = $SceneCount + 1;; $i++) {
 			if (@$this->GetIDForIdent("Scene" . $i . "Data")) {
 				$this->UnregisterVariable("Scene" . $i . "Data");
@@ -95,11 +95,11 @@ class SzenenSteuerung extends IPSModule
 			}
 		}
 
-		//deleting surplus data in SceneData
+		//Deleting surplus data in SceneData
 		$SceneData = array_slice($SceneData, 0, $SceneCount);
 		$this->WriteAttributeString("SceneData", json_encode($SceneData));
 
-		//deleting surplus variables
+		//Deleting surplus variables
 		for ($i = $SceneCount + 1;; $i++) {
 			if (@$this->GetIDForIdent("Scene" . $i)) {
 				$this->UnregisterVariable("Scene" . $i);
@@ -146,7 +146,7 @@ class SzenenSteuerung extends IPSModule
 
 		//We want to save all Lamp Values
 		foreach (IPS_GetChildrenIDs($targetIDs) as $TargetID) {
-			//only allow links
+			//Only allow links
 			if (IPS_LinkExists($TargetID)) {
 				$linkVariableID = IPS_GetLink($TargetID)['TargetID'];
 				if (IPS_VariableExists($linkVariableID)) {
