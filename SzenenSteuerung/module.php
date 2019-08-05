@@ -1,75 +1,103 @@
-<?
-class SzenenSteuerung extends IPSModule {
+<?php
+class SzenenSteuerung extends IPSModule
+{
 
-	public function Create() {
+	public function Create()
+	{
 		//Never delete this line!
 		parent::Create();
 
 		//Properties
-		$this->RegisterPropertyInteger("SceneCount", 3);
-		
-		if(!IPS_VariableProfileExists("SZS.SceneControl")){
+		$this->RegisterPropertyInteger("SceneCount", 5);
+		//Attributes
+		$this->RegisterAttributeString("SceneData", "[]");
+
+		if (!IPS_VariableProfileExists("SZS.SceneControl")) {
 			IPS_CreateVariableProfile("SZS.SceneControl", 1);
 			IPS_SetVariableProfileValues("SZS.SceneControl", 1, 2, 0);
 			//IPS_SetVariableProfileIcon("SZS.SceneControl", "");
 			IPS_SetVariableProfileAssociation("SZS.SceneControl", 1, "Speichern", "", -1);
 			IPS_SetVariableProfileAssociation("SZS.SceneControl", 2, "Ausführen", "", -1);
 		}
-
 	}
 
-	public function Destroy() {
+	public function Destroy()
+	{
 		//Never delete this line!
 		parent::Destroy();
 	}
 
-	public function ApplyChanges() {
+	public function ApplyChanges()
+	{
 		//Never delete this line!
 		parent::ApplyChanges();
-		
+
 		$this->CreateCategoryByIdent($this->InstanceID, "Targets", "Targets");
+
+		$SceneCount = $this->ReadPropertyInteger("SceneCount");
+
+		//Create Scene variables
+		for ($i = 1; $i <= $SceneCount; $i++) {
+			$variableID = $this->RegisterVariableInteger("Scene" . $i, "Scene" . $i, "SZS.SceneControl");
+			$this->EnableAction("Scene" . $i);
+			SetValue($variableID, 2);
+		}
+						
+		$SceneData = json_decode($this->ReadAttributeString("SceneData"));
 		
-		for($i = 1; $i <= $this->ReadPropertyInteger("SceneCount"); $i++) {
-			if(@IPS_GetObjectIDByIdent("Scene".$i, $this->InstanceID) === false){
-				//Scene
-				$vid = IPS_CreateVariable(1 /* Scene */);
-				IPS_SetParent($vid, $this->InstanceID);
-				IPS_SetName($vid, "Scene".$i);
-				IPS_SetIdent($vid, "Scene".$i);
-				IPS_SetVariableCustomProfile($vid, "SZS.SceneControl");
-				$this->EnableAction("Scene".$i);
-				SetValue($vid, 2);
-				//SceneData
-				$vid = IPS_CreateVariable(3 /* SceneData */);
-				IPS_SetParent($vid, $this->InstanceID);
-				IPS_SetName($vid, "Scene".$i."Data");
-				IPS_SetIdent($vid, "Scene".$i."Data");
-				IPS_SetHidden($vid, true);
+		//If older versions contain errors regarding SceneData SceneControl would become unusable otherwise, even in fixed versions
+		if (!is_array($SceneData)) {
+			$SceneData = [];
+		}
+
+		//Preparing SceneData for later use
+		$SceneCount = $this->ReadPropertyInteger("SceneCount");
+
+		for ($i = 1; $i <= $SceneCount; $i++) {
+			if (!array_key_exists($i - 1, $SceneData)) {
+				$SceneData[$i - 1] = new stdClass;
+			}
+		}
+		
+		//Getting data from legacy Scene Data to put them in SceneData attribute (including wddx, JSON)
+		for ($i = 1; $i <= $SceneCount; $i++) {
+			$SceneDataID = @$this->GetIDForIdent("Scene" . $i . "Data");
+			if ($SceneDataID) {
+				$decodedSceneData = NULL;
+				if (function_exists("wddx_deserialize")) {
+					$decodedSceneData = wddx_deserialize(GetValue($SceneDataID));
+				} 
 				
+				if ($decodedSceneData == NULL) {
+					$decodedSceneData = json_decode(GetValue($SceneDataID));
+				}
+
+				if ($decodedSceneData) {
+					$SceneData[$i - 1] = $decodedSceneData;
+				}
+				$this->UnregisterVariable("Scene" . $i . "Data");
 			}
 		}
 
-		//Delete excessive Scences 
-		$ChildrenIDsCount = sizeof(IPS_GetChildrenIDs($this->InstanceID))/2;
-		if($ChildrenIDsCount > $this->ReadPropertyInteger("SceneCount")) {
-			for($j = $this->ReadPropertyInteger("SceneCount")+1; $j <= $ChildrenIDsCount; $j++) {
-				IPS_DeleteVariable(IPS_GetObjectIDByIdent("Scene".$j, $this->InstanceID));
-				IPS_DeleteVariable(IPS_GetObjectIDByIdent("Scene".$j."Data", $this->InstanceID));
+		//Deleting surplus data in SceneData
+		$SceneData = array_slice($SceneData, 0, $SceneCount);
+		$this->WriteAttributeString("SceneData", json_encode($SceneData));
+
+		//Deleting surplus variables
+		for ($i = $SceneCount + 1;; $i++) {
+			if (@$this->GetIDForIdent("Scene" . $i)) {
+				$this->UnregisterVariable("Scene" . $i);
+				
+			} else {
+				break;
 			}
 		}
-
-        for($k = 1; $k <= $this->ReadPropertyInteger("SceneCount"); $k++) {
-            $data = wddx_deserialize(GetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID)));
-
-            if ($data !== NULL) {
-                SetValue(IPS_GetObjectIDByIdent("Scene".$k."Data", $this->InstanceID), json_encode($data));
-            }
-        }
 	}
 
-	public function RequestAction($Ident, $Value) {
-		
-		switch($Value) {
+	public function RequestAction($Ident, $Value)
+	{
+
+		switch ($Value) {
 			case "1":
 				$this->SaveValues($Ident);
 				break;
@@ -81,65 +109,69 @@ class SzenenSteuerung extends IPSModule {
 		}
 	}
 
-	public function CallScene(int $SceneNumber){
-		
-		$this->CallValues("Scene".$SceneNumber);
+	public function CallScene(int $SceneNumber)
+	{
 
+		$this->CallValues("Scene" . $SceneNumber);
 	}
 
-	public function SaveScene(int $SceneNumber){
-		
-		$this->SaveValues("Scene".$SceneNumber);
+	public function SaveScene(int $SceneNumber)
+	{
 
+		$this->SaveValues("Scene" . $SceneNumber);
 	}
 
-	private function SaveValues($SceneIdent) {
-		
+	private function SaveValues($SceneIdent)
+	{
+
 		$targetIDs = IPS_GetObjectIDByIdent("Targets", $this->InstanceID);
-		$data = Array();
-		
+		$data = [];
+
 		//We want to save all Lamp Values
-		foreach(IPS_GetChildrenIDs($targetIDs) as $TargetID) {
-			//only allow links
-			if(IPS_LinkExists($TargetID)) {
+		foreach (IPS_GetChildrenIDs($targetIDs) as $TargetID) {
+			//Only allow links
+			if (IPS_LinkExists($TargetID)) {
 				$linkVariableID = IPS_GetLink($TargetID)['TargetID'];
-				if(IPS_VariableExists($linkVariableID)) {
+				if (IPS_VariableExists($linkVariableID)) {
 					$data[$linkVariableID] = GetValue($linkVariableID);
 				}
 			}
 		}
-		SetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID), json_encode($data));
+
+		$sceneData = json_decode($this->ReadAttributeString("SceneData"));
+
+		$i = intval(substr($SceneIdent, -1));
+
+		$sceneData[$i - 1] = $data;
+
+		$this->WriteAttributeString("SceneData", json_encode($sceneData));
 	}
 
-	private function CallValues($SceneIdent) {
-	    $value = GetValue(IPS_GetObjectIDByIdent($SceneIdent."Data", $this->InstanceID));
+	private function CallValues($SceneIdent)
+	{
 
-	    $data = json_decode($value);
+		$SceneData = json_decode($this->ReadAttributeString("SceneData"), true);
 
-	    if ($data === NULL) {
-	        $data = wddx_deserialize($value);
-        }
-		
-		if($data != NULL) {
-			foreach($data as $id => $value) {
-				if (IPS_VariableExists($id)){
-					$o = IPS_GetObject($id);
+		$i = intval(substr($SceneIdent, -1));
+
+		$data = $SceneData[$i - 1];
+
+		if (count($data) > 0) {
+			foreach ($data as $id => $value) {
+				if (IPS_VariableExists($id)) {
+
 					$v = IPS_GetVariable($id);
 
-					if($v['VariableCustomAction'] > 0)
+					if ($v['VariableCustomAction'] > 0) {
 						$actionID = $v['VariableCustomAction'];
-					else
+					} else {
 						$actionID = $v['VariableAction'];
-					
-					//Skip this device if we do not have a proper id
-					if($actionID < 10000)
-						continue;
-					
-					if(IPS_InstanceExists($actionID)) {
-						IPS_RequestAction($actionID, $o['ObjectIdent'], $value);
-					} else if(IPS_ScriptExists($actionID)) {
-						echo IPS_RunScriptWaitEx($actionID, Array("VARIABLE" => $id, "VALUE" => $value));
 					}
+					//Skip this device if we do not have a proper id
+					if ($actionID < 10000)
+						continue;
+
+					RequestAction($id, $value);
 				}
 			}
 		} else {
@@ -147,16 +179,15 @@ class SzenenSteuerung extends IPSModule {
 		}
 	}
 
-	private function CreateCategoryByIdent($id, $ident, $name) {
-		 $cid = @IPS_GetObjectIDByIdent($ident, $id);
-		 if($cid === false) {
-			 $cid = IPS_CreateCategory();
-			 IPS_SetParent($cid, $id);
-			 IPS_SetName($cid, $name);
-			 IPS_SetIdent($cid, $ident);
-		 }
-		 return $cid;
+	private function CreateCategoryByIdent($id, $ident, $name)
+	{
+		$cid = @IPS_GetObjectIDByIdent($ident, $id);
+		if ($cid === false) {
+			$cid = IPS_CreateCategory();
+			IPS_SetParent($cid, $id);
+			IPS_SetName($cid, $name);
+			IPS_SetIdent($cid, $ident);
+		}
+		return $cid;
 	}
-
 }
-?>
