@@ -20,7 +20,7 @@ Die zu schaltenden Variablen müssen dazu im "Targets" Ordner verlinkt werden.
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 4.x
+- IP-Symcon ab Version 5.0
 
 ### 3. Software-Installation
 
