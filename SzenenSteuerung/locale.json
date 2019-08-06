@@ -2,7 +2,9 @@
 	"translations": {
 		"de": { 
 			"Number of Scenes": "Anzahl der Szenen",
-			"Scenes": "Szenen"
+			"Scenes": "Szenen",
+			"Variables": "Variablen",
+			"No SceneData for this Scene": "Keine SceneData für diese Szene vorhanden"
 		}
 	}
 }

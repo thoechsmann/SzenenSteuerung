@@ -9,8 +9,10 @@ class SzenenSteuerung extends IPSModule
 
 		//Properties
 		$this->RegisterPropertyInteger("SceneCount", 5);
+		$this->RegisterPropertyString("Targets", "[]");
 		//Attributes
 		$this->RegisterAttributeString("SceneData", "[]");
+		
 
 		if (!IPS_VariableProfileExists("SZS.SceneControl")) {
 			IPS_CreateVariableProfile("SZS.SceneControl", 1);
@@ -32,7 +34,29 @@ class SzenenSteuerung extends IPSModule
 		//Never delete this line!
 		parent::ApplyChanges();
 
-		$this->CreateCategoryByIdent($this->InstanceID, "Targets", "Targets");
+		//Transfer data from Target Category(legacy) to recent List
+		if ($this->ReadPropertyString("Targets") == "[]") {
+			$TargetID = @$this->GetIDForIdent("Targets");
+
+			if ($TargetID) {
+
+				$Variables = [];
+				foreach (IPS_GetChildrenIDs($TargetID) as $ChildrenID) {
+					$targetID = IPS_GetLink($ChildrenID)["TargetID"];
+					$line = [
+						"VariableID" => $targetID
+					];
+					array_push($Variables, $line);
+					IPS_DeleteLink($ChildrenID);
+				}
+
+				IPS_DeleteCategory($TargetID);
+				IPS_SetProperty($this->InstanceID, "Targets", json_encode($Variables));
+				IPS_ApplyChanges($this->InstanceID);
+				return;
+			}
+		}
+
 
 		$SceneCount = $this->ReadPropertyInteger("SceneCount");
 
@@ -124,18 +148,16 @@ class SzenenSteuerung extends IPSModule
 	private function SaveValues($SceneIdent)
 	{
 
-		$targetIDs = IPS_GetObjectIDByIdent("Targets", $this->InstanceID);
 		$data = [];
 
-		//We want to save all Lamp Values
-		foreach (IPS_GetChildrenIDs($targetIDs) as $TargetID) {
-			//Only allow links
-			if (IPS_LinkExists($TargetID)) {
-				$linkVariableID = IPS_GetLink($TargetID)['TargetID'];
-				if (IPS_VariableExists($linkVariableID)) {
-					$data[$linkVariableID] = GetValue($linkVariableID);
-				}
+		$Targets = json_decode($this->ReadPropertyString("Targets"), true);
+
+		foreach ($Targets as $line) {
+			$VarID = $line["VariableID"];
+			if (!IPS_VariableExists($VarID)) {
+				continue;
 			}
+			$data[$VarID] = GetValue($VarID);
 		}
 
 		$sceneData = json_decode($this->ReadAttributeString("SceneData"));
@@ -175,19 +197,8 @@ class SzenenSteuerung extends IPSModule
 				}
 			}
 		} else {
-			echo "No SceneData for this Scene";
+			echo $this->Translate("No SceneData for this Scene");
 		}
 	}
 
-	private function CreateCategoryByIdent($id, $ident, $name)
-	{
-		$cid = @IPS_GetObjectIDByIdent($ident, $id);
-		if ($cid === false) {
-			$cid = IPS_CreateCategory();
-			IPS_SetParent($cid, $id);
-			IPS_SetName($cid, $name);
-			IPS_SetIdent($cid, $ident);
-		}
-		return $cid;
-	}
 }
