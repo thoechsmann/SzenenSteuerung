@@ -22,7 +22,7 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 ### 2. Voraussetzungen
 
-- IP-Symcon ab Version 4.x
+- IP-Symcon ab Version 5.0
 
 ### 3. Software-Installation
 
