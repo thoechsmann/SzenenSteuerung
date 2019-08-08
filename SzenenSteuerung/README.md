@@ -26,8 +26,9 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 ### 3. Software-Installation
 
-Über das Modul-Control folgende URL hinzufügen.  
-`git://github.com/symcon/SymconMisc.git`  
+* Über den Modul Store das Modul Szenen-Steuerung installieren.
+* Alternativ über das Modul Control folgende URL hinzufügen:
+´https://github.com/symcon/SzenenSteuerung`
 
 ### 4. Einrichten der Instanzen in IP-Symcon
 
