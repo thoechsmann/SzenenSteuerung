@@ -16,7 +16,7 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 ### 1. Funktionsumfang
 
-* Ermöglicht das Speichern und Ausführen von in einer Liste gespeciherten Variablen über Szenen.
+* Ermöglicht das Speichern und Ausführen von in einer Liste gespeicherten Variablen über Szenen.
 * Darstellung und Bedienung via WebFront und mobilen Apps
 
 ### 2. Voraussetzungen
