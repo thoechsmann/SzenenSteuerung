@@ -37,8 +37,8 @@ __Konfigurationsseite__:
 
 Name      | Beschreibung
 --------- | ---------------------------------
-Scenes    | Anzahl der Szenen die zur Verfügung gestellt werden.
-Variables | Liste mit den zu schaltenden Variablen
+Szenen    | Anzahl der Szenen die zur Verfügung gestellt werden.
+Variablen | Liste mit den zu schaltenden Variablen
 
 ### 5. Statusvariablen und Profile
 
