@@ -18,7 +18,6 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 * Ermöglicht das Speichern und Ausführen von in einer Liste gespeciherten Variablen über Szenen.
 * Darstellung und Bedienung via WebFront und mobilen Apps
-* JSON kodierte Speicherung von Szenendaten (in Attributen)
 
 ### 2. Voraussetzungen
 
