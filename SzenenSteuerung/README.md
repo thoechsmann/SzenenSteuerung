@@ -1,7 +1,7 @@
 # Szenensteuerung
-Die Szenensteuerung speichert Werte von verlinkten Variablen in Szenen und kann diese via Knopfdruck aus dem WebFront und mobilen Apps wieder aufrufen.  
-Die zu schaltenden Variablen müssen dazu in der "Targets"-Kategorie als Link hinzugefügt werden.
-Sind alle für eine Szene gewünschten Variablen verlinkt und auf den gewünschten Wert gesetzt, können diese mit dem "Speichern"-Knopf (im Webfront) der entsprechenden Szene hinzugefügt werden.
+Die Szenensteuerung speichert Werte von in einer Liste gespeicherten Variablen in Szenen und kann diese via Knopfdruck aus dem WebFront und mobilen Apps wieder aufrufen.  
+Die zu schaltenden Variablen müssen dazu in der Instanzkonfiguration der Liste "Variablen" hinzugefügt werden.
+Sind alle für eine Szene gewünschten Variablen hinzugefügt und auf den gewünschten Wert gesetzt, können diese mit dem "Speichern"-Knopf (im Webfront) der entsprechenden Szene hinzugefügt werden.
 Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen werden. Die Variablen werden auf die zuvor gespeicherten Werte gesetzt.
 
 ### Inhaltverzeichnis
@@ -16,9 +16,8 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 ### 1. Funktionsumfang
 
-* Ermöglicht das Speichern und Ausführen von verlinkten Variablen über Szenen.
+* Ermöglicht das Speichern und Ausführen von in einer Liste gespeicherten Variablen über Szenen.
 * Darstellung und Bedienung via WebFront und mobilen Apps
-* JSON kodierte Speicherung von Szenendaten
 
 ### 2. Voraussetzungen
 
@@ -36,22 +35,21 @@ Nun kann die Szene mit dem entsprechenden "Ausführen"-Knopf jederzeit abgerufen
 
 __Konfigurationsseite__:
 
-Name   | Beschreibung
------- | ---------------------------------
-Scenes | Anzahl der Szenen die zur Verfügung gestellt werden.
+Name      | Beschreibung
+--------- | ---------------------------------
+Szenen    | Anzahl der Szenen die zur Verfügung gestellt werden.
+Variablen | Liste mit den zu schaltenden Variablen
 
 ### 5. Statusvariablen und Profile
 
-Die Statusvariablen/Kategorien werden automatisch angelegt. Das Löschen einzelner kann zu Fehlfunktionen führen.
+Die Statusvariablen werden automatisch angelegt. Das Löschen einzelner kann zu Fehlfunktionen führen.
 
 ##### Statusvariablen
 Die Szenen werden 1,2..n aufsteigend durchnummeriert.
 
 Name      | Typ       | Beschreibung
 --------- | --------- | ----------------
-Targets   | Kategorie | Beinhaltet die verlinkten Variablen, deren Werte gespeichert und wieder aufgerufen werden sollen.
 Scene     | Integer   | Zur Anzeige im WebFront und den mobilen Apps. Ruft "Speichern" oder "Ausführen" auf.
-SceneData | String    | Speichert JSON kodierte Datensätze für die jeweilige Szene
 
 ##### Profile:
 
@@ -62,13 +60,13 @@ SZS.SceneControl | Integer
 
 ### 6. WebFront
 
-Über das WebFront können die momentanen Werte der verlinkten Zielvariablen in einer Scene gespeichert werden.
+Über das WebFront können die momentanen Werte der gelisteten Zielvariablen in einer Scene gespeichert werden.
 Über "Ausführen" können bereits gespeicherte Scenen aufgerufen werden.
 
 ### 7. PHP-Befehlsreferenz
 
 `boolean SZS_SaveScene(integer $InstanzID, integer $SceneNumber);`  
-Speichert die Werte der verlinkten Variablen aus der Kategorie "Targets" in der Szene mit der Nummer $SceneNumber in dem Szenensteuerungsmodul mit der InstanzID $InstanzID.  
+Speichert die Werte der in der Liste vorhandenen Variablen in der entsprechenden Szene.  
 Die Funktion liefert keinerlei Rückgabewert.  
 Beispiel:  
 `SZS_SaveScene(12345, 1);`
