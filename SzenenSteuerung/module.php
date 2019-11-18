@@ -18,8 +18,8 @@ class SzenenSteuerung extends IPSModule
             IPS_CreateVariableProfile('SZS.SceneControl', 1);
             IPS_SetVariableProfileValues('SZS.SceneControl', 1, 2, 0);
             //IPS_SetVariableProfileIcon("SZS.SceneControl", "");
-            IPS_SetVariableProfileAssociation('SZS.SceneControl', 1, 'Speichern', '', -1);
-            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, 'Ausführen', '', -1);
+            IPS_SetVariableProfileAssociation('SZS.SceneControl', 1, $this->Translate('Save'), '', -1);
+            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, $this->Translate('Execute'), '', -1);
         }
     }
 
