@@ -18,8 +18,8 @@ class SzenenSteuerung extends IPSModule
             IPS_CreateVariableProfile('SZS.SceneControl', 1);
             IPS_SetVariableProfileValues('SZS.SceneControl', 1, 2, 0);
             //IPS_SetVariableProfileIcon("SZS.SceneControl", "");
-            IPS_SetVariableProfileAssociation('SZS.SceneControl', 1, 'Speichern', '', -1);
-            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, 'Ausführen', '', -1);
+            IPS_SetVariableProfileAssociation('SZS.SceneControl', 1, $this->Translate('Save'), '', -1);
+            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, $this->Translate('Execute'), '', -1);
         }
     }
 
@@ -36,77 +36,77 @@ class SzenenSteuerung extends IPSModule
 
         //Transfer data from Target Category(legacy) to recent List
         if ($this->ReadPropertyString('Targets') == '[]') {
-            $TargetID = @$this->GetIDForIdent('Targets');
+            $targetID = @$this->GetIDForIdent('Targets');
 
-            if ($TargetID) {
-                $Variables = [];
-                foreach (IPS_GetChildrenIDs($TargetID) as $ChildrenID) {
-                    $targetID = IPS_GetLink($ChildrenID)['TargetID'];
+            if ($targetID) {
+                $variables = [];
+                foreach (IPS_GetChildrenIDs($targetID) as $childID) {
+                    $targetID = IPS_GetLink($childID)['TargetID'];
                     $line = [
                         'VariableID' => $targetID
                     ];
-                    array_push($Variables, $line);
-                    IPS_DeleteLink($ChildrenID);
+                    array_push($variables, $line);
+                    IPS_DeleteLink($childID);
                 }
 
-                IPS_DeleteCategory($TargetID);
-                IPS_SetProperty($this->InstanceID, 'Targets', json_encode($Variables));
+                IPS_DeleteCategory($targetID);
+                IPS_SetProperty($this->InstanceID, 'Targets', json_encode($variables));
                 IPS_ApplyChanges($this->InstanceID);
                 return;
             }
         }
 
-        $SceneCount = $this->ReadPropertyInteger('SceneCount');
+        $sceneCount = $this->ReadPropertyInteger('SceneCount');
 
         //Create Scene variables
-        for ($i = 1; $i <= $SceneCount; $i++) {
+        for ($i = 1; $i <= $sceneCount; $i++) {
             $variableID = $this->RegisterVariableInteger('Scene' . $i, 'Scene' . $i, 'SZS.SceneControl');
             $this->EnableAction('Scene' . $i);
             SetValue($variableID, 2);
         }
 
-        $SceneData = json_decode($this->ReadAttributeString('SceneData'));
+        $sceneData = json_decode($this->ReadAttributeString('SceneData'));
 
         //If older versions contain errors regarding SceneData SceneControl would become unusable otherwise, even in fixed versions
-        if (!is_array($SceneData)) {
-            $SceneData = [];
+        if (!is_array($sceneData)) {
+            $sceneData = [];
         }
 
         //Preparing SceneData for later use
-        $SceneCount = $this->ReadPropertyInteger('SceneCount');
+        $sceneCount = $this->ReadPropertyInteger('SceneCount');
 
-        for ($i = 1; $i <= $SceneCount; $i++) {
-            if (!array_key_exists($i - 1, $SceneData)) {
-                $SceneData[$i - 1] = new stdClass();
+        for ($i = 1; $i <= $sceneCount; $i++) {
+            if (!array_key_exists($i - 1, $sceneData)) {
+                $sceneData[$i - 1] = new stdClass();
             }
         }
 
         //Getting data from legacy Scene Data to put them in SceneData attribute (including wddx, JSON)
-        for ($i = 1; $i <= $SceneCount; $i++) {
-            $SceneDataID = @$this->GetIDForIdent('Scene' . $i . 'Data');
-            if ($SceneDataID) {
+        for ($i = 1; $i <= $sceneCount; $i++) {
+            $sceneDataID = @$this->GetIDForIdent('Scene' . $i . 'Data');
+            if ($sceneDataID) {
                 $decodedSceneData = null;
                 if (function_exists('wddx_deserialize')) {
-                    $decodedSceneData = wddx_deserialize(GetValue($SceneDataID));
+                    $decodedSceneData = wddx_deserialize(GetValue($sceneDataID));
                 }
 
                 if ($decodedSceneData == null) {
-                    $decodedSceneData = json_decode(GetValue($SceneDataID));
+                    $decodedSceneData = json_decode(GetValue($sceneDataID));
                 }
 
                 if ($decodedSceneData) {
-                    $SceneData[$i - 1] = $decodedSceneData;
+                    $sceneData[$i - 1] = $decodedSceneData;
                 }
                 $this->UnregisterVariable('Scene' . $i . 'Data');
             }
         }
 
         //Deleting surplus data in SceneData
-        $SceneData = array_slice($SceneData, 0, $SceneCount);
-        $this->WriteAttributeString('SceneData', json_encode($SceneData));
+        $sceneData = array_slice($sceneData, 0, $sceneCount);
+        $this->WriteAttributeString('SceneData', json_encode($sceneData));
 
         //Deleting surplus variables
-        for ($i = $SceneCount + 1; ; $i++) {
+        for ($i = $sceneCount + 1; ; $i++) {
             if (@$this->GetIDForIdent('Scene' . $i)) {
                 $this->UnregisterVariable('Scene' . $i);
             } else {
@@ -148,14 +148,14 @@ class SzenenSteuerung extends IPSModule
         $this->SaveValues('Scene' . $SceneNumber);
     }
 
-    private function SaveValues($SceneIdent)
+    private function SaveValues($sceneIdent)
     {
         $data = [];
 
-        $Targets = json_decode($this->ReadPropertyString('Targets'), true);
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
 
-        foreach ($Targets as $line) {
-            $VarID = $line['VariableID'];
+        foreach ($targets as $target) {
+            $VarID = $target['VariableID'];
             if (!IPS_VariableExists($VarID)) {
                 continue;
             }
@@ -164,20 +164,20 @@ class SzenenSteuerung extends IPSModule
 
         $sceneData = json_decode($this->ReadAttributeString('SceneData'));
 
-        $i = (int) filter_var($SceneIdent, FILTER_SANITIZE_NUMBER_INT);
+        $i = (int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT);
 
         $sceneData[$i - 1] = $data;
 
         $this->WriteAttributeString('SceneData', json_encode($sceneData));
     }
 
-    private function CallValues($SceneIdent)
+    private function CallValues($sceneIdent)
     {
-        $SceneData = json_decode($this->ReadAttributeString('SceneData'), true);
+        $sceneData = json_decode($this->ReadAttributeString('SceneData'), true);
 
-        $i = (int) filter_var($SceneIdent, FILTER_SANITIZE_NUMBER_INT);
+        $i = (int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT);
 
-        $data = $SceneData[$i - 1];
+        $data = $sceneData[$i - 1];
 
         if (count($data) > 0) {
             foreach ($data as $id => $value) {
