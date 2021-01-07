@@ -25,8 +25,7 @@ class SzenenSteuerungMigrationTest extends TestCase
     {
         //Skip this test if the function doesn't exist anymore
         if (!function_exists('wddx_serialize_value')) {
-            $this->assertTrue(true);
-            return;
+            $this->markTestSkipped('needs PHP 7.3 or lower');
         }
         //Createing ActionScript
         $sid = IPS_CreateScript(0 /* PHP */);
