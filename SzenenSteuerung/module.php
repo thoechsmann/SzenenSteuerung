@@ -13,13 +13,16 @@ class SzenenSteuerung extends IPSModule
         $this->RegisterPropertyString('Targets', '[]');
         //Attributes
         $this->RegisterAttributeString('SceneData', '[]');
+        //Timer
+        $this->RegisterTimer('UpdateTimer', 0, 'SZS_UpdateActive($_IPS[\'TARGET\']);');
 
+        $this->RegisterVariableString('ActiveScene', $this->Translate('Active Scene'), '', -1);
         if (!IPS_VariableProfileExists('SZS.SceneControl')) {
             IPS_CreateVariableProfile('SZS.SceneControl', 1);
             IPS_SetVariableProfileValues('SZS.SceneControl', 1, 2, 0);
             //IPS_SetVariableProfileIcon("SZS.SceneControl", "");
             IPS_SetVariableProfileAssociation('SZS.SceneControl', 1, $this->Translate('Save'), '', -1);
-            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, $this->Translate('Execute'), '', -1);
+            IPS_SetVariableProfileAssociation('SZS.SceneControl', 2, $this->Translate('Call'), '', -1);
         }
     }
 
@@ -36,11 +39,11 @@ class SzenenSteuerung extends IPSModule
 
         //Transfer data from Target Category(legacy) to recent List
         if ($this->ReadPropertyString('Targets') == '[]') {
-            $targetID = @$this->GetIDForIdent('Targets');
+            $targetCategoryID = @$this->GetIDForIdent('Targets');
 
-            if ($targetID) {
+            if ($targetCategoryID) {
                 $variables = [];
-                foreach (IPS_GetChildrenIDs($targetID) as $childID) {
+                foreach (IPS_GetChildrenIDs($targetCategoryID) as $childID) {
                     $targetID = IPS_GetLink($childID)['TargetID'];
                     $line = [
                         'VariableID' => $targetID
@@ -49,7 +52,7 @@ class SzenenSteuerung extends IPSModule
                     IPS_DeleteLink($childID);
                 }
 
-                IPS_DeleteCategory($targetID);
+                IPS_DeleteCategory($targetCategoryID);
                 IPS_SetProperty($this->InstanceID, 'Targets', json_encode($variables));
                 IPS_ApplyChanges($this->InstanceID);
                 return;
@@ -60,7 +63,7 @@ class SzenenSteuerung extends IPSModule
 
         //Create Scene variables
         for ($i = 1; $i <= $sceneCount; $i++) {
-            $variableID = $this->RegisterVariableInteger('Scene' . $i, 'Scene' . $i, 'SZS.SceneControl');
+            $variableID = $this->RegisterVariableInteger('Scene' . $i, sprintf($this->Translate('Scene %d'), $i), 'SZS.SceneControl');
             $this->EnableAction('Scene' . $i);
             SetValue($variableID, 2);
         }
@@ -122,6 +125,27 @@ class SzenenSteuerung extends IPSModule
         foreach ($targets as $target) {
             $this->RegisterReference($target->VariableID);
         }
+
+        //Unregister all messages
+        $messageList = array_keys($this->GetMessageList());
+        foreach ($messageList as $message) {
+            $this->UnregisterMessage($message, VM_UPDATE);
+        }
+
+        //Register messages if neccessary
+        foreach ($targets as $target) {
+            $this->RegisterMessage($target->VariableID, VM_UPDATE);
+        }
+
+        //Set active scene
+        $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
+    }
+
+    public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
+    {
+        if ($Message == VM_UPDATE && json_decode($this->GetBuffer('UpdateActive'))) {
+            $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
+        }
     }
 
     public function RequestAction($Ident, $Value)
@@ -131,7 +155,11 @@ class SzenenSteuerung extends IPSModule
                 $this->SaveValues($Ident);
                 break;
             case '2':
+                $this->SetBuffer('UpdateActive', json_encode(false));
+                $this->SetValue('ActiveScene', sprintf($this->Translate("'%s' is called"), IPS_GetName($this->GetIDForIdent($Ident))));
+                $this->SetTimerInterval('UpdateTimer', 5 * 1000);
                 $this->CallValues($Ident);
+
                 break;
             default:
                 throw new Exception('Invalid action');
@@ -140,12 +168,50 @@ class SzenenSteuerung extends IPSModule
 
     public function CallScene(int $SceneNumber)
     {
-        $this->CallValues('Scene' . $SceneNumber);
+        $this->CallValues("Scene$SceneNumber");
     }
 
     public function SaveScene(int $SceneNumber)
     {
-        $this->SaveValues('Scene' . $SceneNumber);
+        $this->SaveValues("Scene$SceneNumber");
+    }
+
+    public function GetActiveScene()
+    {
+        $scenes = json_decode($this->ReadAttributeString('SceneData'), true);
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
+        $sceneCount = $this->ReadPropertyInteger('SceneCount');
+        $sceneID = -1;
+        for ($i = 0; $i < $sceneCount; $i++) {
+            foreach ($scenes[$i] as $id => $value) {
+                $sceneID = $i;
+                if (GetValue($id) != $value) {
+                    $sceneID = -1;
+                    break;
+                }
+            }
+            if ($sceneID != -1) {
+                break;
+            }
+        }
+        //The 'sceneID' starts at 1
+        return $sceneID + 1;
+    }
+
+    public function UpdateActive()
+    {
+        $this->SetTimerInterval('UpdateTimer', 0);
+        $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
+        $this->SetBuffer('UpdateActive', json_encode(true));
+    }
+
+    private function getSceneName($sceneID)
+    {
+        if ($sceneID != 0) {
+            return IPS_GetName($this->GetIDForIdent("Scene$sceneID"));
+        } else {
+            return $this->Translate('Unknown');
+        }
     }
 
     private function SaveValues($sceneIdent)
