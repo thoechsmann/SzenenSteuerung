@@ -3,8 +3,7 @@
     "name": "SzenenSteuerung",
     "type": 3,
     "vendor": "",
-    "aliases": 
-    [
+    "aliases": [
         "SzenenSteuerung"
     ],
     "parentRequirements": [],
