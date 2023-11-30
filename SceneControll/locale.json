@@ -10,7 +10,9 @@
             "Scene %d": "Szene %d",
             "Active Scene": "Aktive Szene",
             "Unknown": "Unbekannt",
-            "'%s' is called": "'%s' wird aufgerufen"
+            "'%s' is called": "'%s' wird aufgerufen",
+            "SceneControll": "SzenenSteuerung",
+            "https://www.symcon.de/en/service/documentation/module-reference/scenecontroll/": "https://www.symcon.de/de/service/dokumentation/modulreferenz/szenensteuerung/"
         }
     }
 }
