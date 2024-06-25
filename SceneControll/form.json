@@ -13,6 +13,7 @@
             "add": true,
             "onAdd": "SZS_AddVariable($id, $Targets);",
             "delete": true,
+            "changeOrder": true,
             "columns": [
                 {
                     "caption": "GUID",
