@@ -6,7 +6,7 @@
   </php>
   <source>
     <include>
-      <directory suffix=".php">../SceneControll</directory>
+      <directory suffix=".php">../SceneControl</directory>
     </include>
   </source>
 </phpunit>

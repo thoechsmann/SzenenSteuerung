@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 include_once __DIR__ . '/attributes.php';
-class SceneControll extends IPSModule
+class SceneControl extends IPSModule
 {
     use Attributes;
     public function Create()
