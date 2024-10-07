@@ -33,6 +33,11 @@
                     }
                 }
             ]
+        },
+        {
+            "type": "SelectVariable",
+            "name": "IsOnId",
+            "caption": "IsOnId"
         }
     ]
 }

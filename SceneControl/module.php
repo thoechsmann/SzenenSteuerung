@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 include_once __DIR__ . '/attributes.php';
-class SceneControl_MC extends IPSModule
+class SceneControl extends IPSModule
 {
     use Attributes;
     public function Create()
@@ -13,6 +13,8 @@ class SceneControl_MC extends IPSModule
         //Properties
         $this->RegisterPropertyInteger('SceneCount', 5);
         $this->RegisterPropertyString('Targets', '[]');
+        $this->RegisterPropertyInteger('IsOnId', 0);
+
         //Attributes
         $this->RegisterAttributeString('SceneData', '[]');
         //Timer
@@ -182,22 +184,33 @@ class SceneControl_MC extends IPSModule
     public function RequestAction($Ident, $Value)
     {
         switch ($Value) {
-            case '1':
+            case '1': // Save the scene
                 $this->SaveValues($Ident);
                 $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
                 break;
-            case '2':
-                $this->SetBuffer('UpdateActive', json_encode(false));
-                $this->SetValue('ActiveScene', sprintf($this->Translate("'%s' is called"), IPS_GetName($this->GetIDForIdent($Ident))));
-                $this->SetTimerInterval('UpdateTimer', 5 * 1000);
-                $this->CallValues($Ident);
-
+    
+            case '2': // Call the scene
+                // Get the IsOnId property value
+                $isOnId = $this->ReadPropertyInteger('IsOnId');
+    
+                // Check if the IsOnId is valid and if its value is true
+                if ($isOnId != 0 && GetValue($isOnId) === true) {
+                    // Proceed with calling the scene
+                    $this->SetBuffer('UpdateActive', json_encode(false));
+                    $this->SetValue('ActiveScene', sprintf($this->Translate("'%s' is called"), IPS_GetName($this->GetIDForIdent($Ident))));
+                    $this->SetTimerInterval('UpdateTimer', 5 * 1000);
+                    $this->CallValues($Ident);
+                } else {
+                    // Log that the scene execution was skipped due to IsOnId being false or missing
+                    IPS_LogMessage("SceneControl", "Scene call skipped: IsOnId is not active (false) or not set.");
+                }
                 break;
+    
             default:
                 throw new Exception('Invalid action');
         }
     }
-
+    
     public function CallScene(int $SceneNumber)
     {
         $this->CallValues("Scene$SceneNumber");
