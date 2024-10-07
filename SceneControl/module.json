@@ -1,14 +1,14 @@
 {
-    "id": "{87F46796-CC43-442D-94FD-AAA0BD8D9F54}",
-    "name": "SceneControl",
+    "id": "{87F46796-CC43-442D-94FD-AAA0BD8D9F55}",
+    "name": "SceneControl_MC",
     "type": 3,
     "vendor": "",
     "aliases": [
-        "Scene Control"
+        "Scene Control MC"
     ],
     "parentRequirements": [],
     "childRequirements": [],
     "implemented": [],
-    "prefix": "SZS",
+    "prefix": "SZS_MC",
     "url": "https://www.symcon.de/en/service/documentation/module-reference/scenecontrol/"
 }
