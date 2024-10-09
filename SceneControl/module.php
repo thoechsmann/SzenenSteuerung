@@ -115,6 +115,25 @@ class SceneControl extends IPSModule
 
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
 
+        //Transfer data from Target Category(legacy) to recent List
+        if ($targets == []) {
+            $targetCategoryID = @$this->GetIDForIdent('Targets');
+
+            if ($targetCategoryID) {
+                foreach (IPS_GetChildrenIDs($targetCategoryID) as $childID) {
+                    $targetID = IPS_GetLink($childID)['TargetID'];
+                    $line = [
+                        'VariableID' => $targetID
+                    ];
+                    array_push($targets, $line);
+                    IPS_DeleteLink($childID);
+                }
+
+                IPS_DeleteCategory($targetCategoryID);
+                $needsReload = true;
+            }
+        }
+
         //Add GUID if none set
         $needsReload = false;
         foreach ($targets as $index => $target) {
@@ -134,6 +153,11 @@ class SceneControl extends IPSModule
 
         $sceneData = json_decode($this->ReadAttributeString('SceneData'));
 
+        //If older versions contain errors regarding SceneData SceneControl would become unusable otherwise, even in fixed versions
+        if (!is_array($sceneData)) {
+            $sceneData = [];
+        }
+
         //Preparing SceneData for later use
         $sceneCount = $this->ReadPropertyInteger('SceneCount');
 
@@ -143,18 +167,38 @@ class SceneControl extends IPSModule
             }
         }
 
-        // //Deleting surplus data in SceneData
-        // $sceneData = array_slice($sceneData, 0, $sceneCount);
-        // $this->WriteAttributeString('SceneData', json_encode($sceneData));
+        //Getting data from legacy SceneData to put them in SceneData attribute (including wddx, JSON)
+        for ($i = 1; $i <= $sceneCount; $i++) {
+            $sceneDataID = @$this->GetIDForIdent('Scene' . $i . 'Data');
+            if ($sceneDataID) {
+                $decodedSceneData = null;
+                if (function_exists('wddx_deserialize')) {
+                    $decodedSceneData = wddx_deserialize(GetValue($sceneDataID));
+                }
 
-        // //Deleting surplus variables
-        // for ($i = $sceneCount + 1;; $i++) {
-        //     if (@$this->GetIDForIdent('Scene' . $i)) {
-        //         $this->UnregisterVariable('Scene' . $i);
-        //     } else {
-        //         break;
-        //     }
-        // }
+                if ($decodedSceneData == null) {
+                    $decodedSceneData = json_decode(GetValue($sceneDataID));
+                }
+
+                if ($decodedSceneData) {
+                    $sceneData[$i - 1] = $decodedSceneData;
+                }
+                $this->UnregisterVariable('Scene' . $i . 'Data');
+            }
+        }
+
+        //Deleting surplus data in SceneData
+        $sceneData = array_slice($sceneData, 0, $sceneCount);
+        $this->WriteAttributeString('SceneData', json_encode($sceneData));
+
+        //Deleting surplus variables
+        for ($i = $sceneCount + 1;; $i++) {
+            if (@$this->GetIDForIdent('Scene' . $i)) {
+                $this->UnregisterVariable('Scene' . $i);
+            } else {
+                break;
+            }
+        }
 
         //Transfer variableIDs to IDs
         $variableGUIDs = [];
@@ -389,6 +433,7 @@ class SceneControl extends IPSModule
 
     private function SaveValues($sceneIdent)
     {
+        IPS_LogMessage("SceneControl", "SaveValues: " . $sceneIdent);
         $data = [];
 
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
