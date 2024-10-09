@@ -61,10 +61,13 @@
                     }
                 },
                 {
-                    "caption": "Scene Name",
-                    "name": "scenename",
+                    "caption": "SceneVariableID",
+                    "name": "SceneVariableID",
                     "width": "auto",
-                    "add": ""
+                    "add": "",
+                    "edit": {
+                        "type": "SelectVariable"
+                    }
                 }
             ]
         },
