@@ -13,12 +13,11 @@ class SceneControl extends IPSModule
         //Properties
         $this->RegisterPropertyInteger('SceneCount', 5);
         $this->RegisterPropertyString('Targets', '[]');
+        $this->RegisterPropertyString('Triggers', '[]');
         $this->RegisterPropertyInteger('IsOnId', 0);
 
         //Attributes
         $this->RegisterAttributeString('SceneData', '[]');
-        //Timer
-        $this->RegisterTimer('UpdateTimer', 0, 'SZS_UpdateActive($_IPS[\'TARGET\']);');
 
         $this->RegisterVariableString('ActiveScene', $this->Translate('Active Scene'), '', -1);
         if (!IPS_VariableProfileExists('SZS.SceneControl')) {
@@ -120,7 +119,7 @@ class SceneControl extends IPSModule
         $this->WriteAttributeString('SceneData', json_encode($sceneData));
 
         //Deleting surplus variables
-        for ($i = $sceneCount + 1; ; $i++) {
+        for ($i = $sceneCount + 1;; $i++) {
             if (@$this->GetIDForIdent('Scene' . $i)) {
                 $this->UnregisterVariable('Scene' . $i);
             } else {
@@ -174,9 +173,6 @@ class SceneControl extends IPSModule
         if ($isOnId != 0) {
             $this->RegisterMessage($isOnId, VM_UPDATE);
         }
-
-        //Set active scene
-        $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -184,18 +180,16 @@ class SceneControl extends IPSModule
         // Check if this is an update for IsOnId
         if ($Message == VM_UPDATE) {
             $isOnId = $this->ReadPropertyInteger('IsOnId');
+            $isOnValue = GetValue($isOnId);
+            IPS_LogMessage("SceneControl", "IsOnId updated. New value: " . ($isOnValue ? "true" : "false"));
 
             // If the sender is IsOnId and the value has been set to true
             if ($SenderID == $isOnId && GetValue($isOnId) === true) {
                 IPS_LogMessage("SceneControl", "IsOnId is true, calling the current scene.");
 
                 // Call the current active scene
-                $this->CallScene($this->GetActiveScene());
+                $this->CallScene($this->GetActiveSceneNumber());
             }
-        }
-
-        if ($Message == VM_UPDATE && json_decode($this->GetBuffer('UpdateActive'))) {
-            $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
         }
     }
 
@@ -203,74 +197,65 @@ class SceneControl extends IPSModule
     {
         switch ($Value) {
             case '1': // Save the scene
-                // Save the scene values no matter what the IsOnId value is
+                $this->SetValue('ActiveScene', IPS_GetName($this->GetIDForIdent($Ident)));
                 $this->SaveValues($Ident);
-                $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
                 break;
-    
+
             case '2': // Call the scene
-                // Save the scene first
-                $this->SetValue('ActiveScene', sprintf($this->Translate("'%s' is called"), IPS_GetName($this->GetIDForIdent($Ident))));
-    
+                $this->SetValue('ActiveScene', IPS_GetName($this->GetIDForIdent($Ident)));
+
                 // Check if the IsOnId property is set and valid
                 $isOnId = $this->ReadPropertyInteger('IsOnId');
-    
+
                 // Only execute the scene if the IsOnId variable is true
                 if ($isOnId != 0 && GetValue($isOnId) === true) {
-                    $this->SetBuffer('UpdateActive', json_encode(false));
-                    $this->SetTimerInterval('UpdateTimer', 5 * 1000);
                     $this->CallValues($Ident);
                 } else {
-                    //T Log that the scene execution was skipped because IsOnId is false or not set
                     IPS_LogMessage("SceneControl", "Scene call skipped: IsOnId is not active (false) or not set.");
                 }
                 break;
-    
+
             default:
                 throw new Exception('Invalid action');
         }
     }
-    
+
     public function CallScene(int $SceneNumber)
     {
+        $this->SetValue('ActiveScene', $this->getSceneName($SceneNumber));
         $this->CallValues("Scene$SceneNumber");
     }
 
     public function SaveScene(int $SceneNumber)
     {
         $this->SaveValues("Scene$SceneNumber");
+        $this->SetValue('ActiveScene', $this->getSceneName($SceneNumber));
     }
 
-    public function GetActiveScene()
+    public function GetActiveSceneNumber()
     {
-        $scenes = json_decode($this->ReadAttributeString('SceneData'), true);
-        $targets = json_decode($this->ReadPropertyString('Targets'), true);
-        $sceneCount = $this->ReadPropertyInteger('SceneCount');
-        $sceneID = -1;
-        for ($i = 0; $i < $sceneCount; $i++) {
-            foreach ($scenes[$i] as $guid => $value) {
-                $variableID = $this->getVariable($guid);
-                $sceneID = $i;
-                if (IPS_VariableExists($variableID)) {
-                    if (GetValue($variableID) != $value) {
-                        $sceneID = -1;
-                        break;
-                    }
-                }
-            }
-            if ($sceneID != -1) {
-                break;
+        // Get the current value of the 'ActiveScene' variable
+        $sceneName = $this->GetValue('ActiveScene');
+
+        // Retrieve all scene variables (Scene1, Scene2, etc.)
+        $childrenIDs = IPS_GetChildrenIDs($this->InstanceID);
+
+        // Loop through each child variable to find the matching scene
+        foreach ($childrenIDs as $childID) {
+            $childName = IPS_GetName($childID); // Get the name of the child object (e.g., 'Scene 1')
+
+            // Compare the current scene name with the name of the child object
+            if ($sceneName === $childName) {
+                // Extract the number from the child object's name (e.g., 'Scene 1' -> 1)
+                $ident = IPS_GetObject($childID)['ObjectIdent'];
+                $sceneNumber = (int) filter_var($ident, FILTER_SANITIZE_NUMBER_INT);
+                return $sceneNumber;
             }
         }
-        //The 'sceneID' starts at 1
-        return $sceneID + 1;
-    }
 
-    public function UpdateActive()
-    {
-        $this->SetTimerInterval('UpdateTimer', 0);
-        $this->SetValue('ActiveScene', $this->getSceneName($this->GetActiveScene()));
-        $this->SetBuffer('UpdateActive', json_encode(true));
+        // If no matching scene was found, return 0 or handle accordingly
+        IPS_LogMessage("SceneControl", "No matching scene found.");
+        return 0;
     }
 
     public function AddVariable($Targets)
@@ -278,6 +263,13 @@ class SceneControl extends IPSModule
         $this->SendDebug('New Value', json_encode($Targets), 0);
         $form = json_decode($this->GetConfigurationForm(), true);
         $this->UpdateFormField('Targets', 'columns', json_encode($form['elements'][1]['columns']));
+    }
+
+    public function AddTrigger($Triggers)
+    {
+        $this->SendDebug('New Value', json_encode($Triggers), 0);
+        $form = json_decode($this->GetConfigurationForm(), true);
+        $this->UpdateFormField('Triggers', 'columns', json_encode($form['elements'][1]['columns']));
     }
 
     public function GetConfigurationForm()
@@ -338,10 +330,13 @@ class SceneControl extends IPSModule
     private function CallValues($sceneIdent)
     {
         $sceneData = json_decode($this->ReadAttributeString('SceneData'), true);
+        IPS_LogMessage("SceneControl", "SceneData: " . $this->ReadAttributeString('SceneData'));
 
         $i = (int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT);
+        IPS_LogMessage("SceneControl", "i: " . $i);
 
         $data = $sceneData[$i - 1];
+        // IPS_LogMessage("SceneControl", "date: " . $data);
 
         if (count($data) > 0) {
             foreach ($data as $guid => $value) {
