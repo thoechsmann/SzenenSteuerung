@@ -6,50 +6,6 @@ class SceneControl extends IPSModule
 {
     use Attributes;
 
-    public function SZS_AutoAddLights(int $instanceID)
-    {
-        // Get the parent instance of the current instance
-        $parentID = IPS_GetParent($instanceID);
-
-        // Initialize an array to store found variables
-        $foundVariables = [];
-
-        // Get all children recursively under the parent instance
-        $allChildrenIDs = IPS_GetChildrenIDs($parentID);
-
-        // Loop through each child object
-        foreach ($allChildrenIDs as $childID) {
-            // Check if the direct parent has the suffix "Licht"
-            $parentObject = IPS_GetObject(IPS_GetParent($childID));
-            if (strpos($parentObject['ObjectName'], 'Licht') !== false) {
-                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
-                $variableName = IPS_GetName($childID);
-                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
-                    // Add the variable ID to the foundVariables array
-                    $foundVariables[] = [
-                        "VariableID" => $childID,
-                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
-                    ];
-                }
-            }
-        }
-
-        // Get the current list of targets (VariableID array)
-        $targets = json_decode($this->ReadPropertyString('Targets'), true);
-
-        // Merge the found variables into the existing targets
-        $targets = array_merge($targets, $foundVariables);
-
-        // Save the updated list of targets back to the property
-        IPS_SetProperty($this->InstanceID, 'Targets', json_encode($targets));
-
-        // Apply the changes to refresh the configuration
-        IPS_ApplyChanges($this->InstanceID);
-
-        // Log the result for debugging
-        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " variables to Targets.");
-    }
-
     public function Create()
     {
         //Never delete this line!
@@ -474,6 +430,50 @@ class SceneControl extends IPSModule
         $this->SendDebug('New Value', json_encode($Triggers), 0);
         $form = json_decode($this->GetConfigurationForm(), true);
         $this->UpdateFormField('Triggers', 'columns', json_encode($form['elements'][1]['columns']));
+    }
+
+    public function AutoAddLights(int $instanceID)
+    {
+        // Get the parent instance of the current instance
+        $parentID = IPS_GetParent($instanceID);
+
+        // Initialize an array to store found variables
+        $foundVariables = [];
+
+        // Get all children recursively under the parent instance
+        $allChildrenIDs = IPS_GetChildrenIDs($parentID);
+
+        // Loop through each child object
+        foreach ($allChildrenIDs as $childID) {
+            // Check if the direct parent has the suffix "Licht"
+            $parentObject = IPS_GetObject(IPS_GetParent($childID));
+            if (strpos($parentObject['ObjectName'], 'Licht') !== false) {
+                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
+                $variableName = IPS_GetName($childID);
+                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
+                    // Add the variable ID to the foundVariables array
+                    $foundVariables[] = [
+                        "VariableID" => $childID,
+                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
+                    ];
+                }
+            }
+        }
+
+        // Get the current list of targets (VariableID array)
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
+
+        // Merge the found variables into the existing targets
+        $targets = array_merge($targets, $foundVariables);
+
+        // Save the updated list of targets back to the property
+        IPS_SetProperty($this->InstanceID, 'Targets', json_encode($targets));
+
+        // Apply the changes to refresh the configuration
+        IPS_ApplyChanges($this->InstanceID);
+
+        // Log the result for debugging
+        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " variables to Targets.");
     }
 
     public function GetConfigurationForm()
