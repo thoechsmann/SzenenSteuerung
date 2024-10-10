@@ -5,6 +5,51 @@ include_once __DIR__ . '/attributes.php';
 class SceneControl extends IPSModule
 {
     use Attributes;
+
+    public function SZS_AutoAddLights(int $instanceID)
+    {
+        // Get the parent instance of the current instance
+        $parentID = IPS_GetParent($instanceID);
+
+        // Initialize an array to store found variables
+        $foundVariables = [];
+
+        // Get all children recursively under the parent instance
+        $allChildrenIDs = IPS_GetChildrenIDs($parentID);
+
+        // Loop through each child object
+        foreach ($allChildrenIDs as $childID) {
+            // Check if the direct parent has the suffix "Licht"
+            $parentObject = IPS_GetObject(IPS_GetParent($childID));
+            if (strpos($parentObject['ObjectName'], 'Licht') !== false) {
+                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
+                $variableName = IPS_GetName($childID);
+                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
+                    // Add the variable ID to the foundVariables array
+                    $foundVariables[] = [
+                        "VariableID" => $childID,
+                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
+                    ];
+                }
+            }
+        }
+
+        // Get the current list of targets (VariableID array)
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
+
+        // Merge the found variables into the existing targets
+        $targets = array_merge($targets, $foundVariables);
+
+        // Save the updated list of targets back to the property
+        IPS_SetProperty($this->InstanceID, 'Targets', json_encode($targets));
+
+        // Apply the changes to refresh the configuration
+        IPS_ApplyChanges($this->InstanceID);
+
+        // Log the result for debugging
+        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " variables to Targets.");
+    }
+
     public function Create()
     {
         //Never delete this line!
@@ -53,8 +98,10 @@ class SceneControl extends IPSModule
 
         // Define color mappings for specific scene names
         $colorMap = [
-            "Aus" => 0x292929,  // Aus (Off) -> DarkGrey
+            // "Immer Aus" => 0x292929,  // Aus (Off) -> DarkGrey
+            // "Immer An" => 0xFFFFFF,  // Aus (Off) -> DarkGrey
             "Tag" => 0xADD8E6,  // Tag (Day) -> LightBlue
+            "Abend" => 0x0000A6,  // Tag (Day) -> LightBlue
             "Nacht" => 0x00008B // Nacht (Night) -> DarkBlue
         ];
 
@@ -275,15 +322,20 @@ class SceneControl extends IPSModule
                     // Get the current value of the trigger variable
                     $triggerValue = GetValue($SenderID);
 
-                    // If the trigger value is true, call the corresponding scene by its Scene VariableID
-                    // if ($triggerValue === true) {
-                    $sceneVariableID = $trigger['SceneVariableID'];
-                    IPS_LogMessage("SceneControl", "Trigger activated for Scene Variable ID: " . $sceneVariableID);
+                    // If SceneVariableID is empty, use the active scene from the scheduler
+                    if (empty($trigger['SceneVariableID'])) {
+                        $activeSceneNumber = $this->GetActiveSceneFromScheduler();
+                        IPS_LogMessage("SceneControl", "Trigger activated but no SceneVariableID, using active scene from scheduler: " . $activeSceneNumber);
+                        $this->CallScene($activeSceneNumber);
+                    } else {
+                        // If the trigger value is true, call the corresponding scene by its Scene VariableID
+                        $sceneVariableID = $trigger['SceneVariableID'];
+                        IPS_LogMessage("SceneControl", "Trigger activated for Scene Variable ID: " . $sceneVariableID);
 
-                    // Call the corresponding scene by the VariableID of the scene (SceneVariableID)
-                    $sceneIdent = IPS_GetObject($sceneVariableID)['ObjectIdent'];  // Get the scene's Ident
-                    $this->CallScene((int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT)); // Extract scene number and call it
-                    // }
+                        // Call the corresponding scene by the VariableID of the scene (SceneVariableID)
+                        $sceneIdent = IPS_GetObject($sceneVariableID)['ObjectIdent'];  // Get the scene's Ident
+                        $this->CallScene((int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT)); // Extract scene number and call it
+                    }
 
                     // Once handled, exit the function early
                     return;
@@ -300,6 +352,8 @@ class SceneControl extends IPSModule
                 if ($isOnValue === true) {
                     IPS_LogMessage("SceneControl", "IsOnId is true, calling the current scene.");
                     $this->CallScene($this->GetActiveSceneNumber());
+                } else {
+                    $this->TurnOff();
                 }
 
                 // Once handled, exit the function early
@@ -309,6 +363,29 @@ class SceneControl extends IPSModule
             // If no triggers matched, log that the trigger was not found
             IPS_LogMessage("SceneControl", "Trigger not found for SenderID: " . $SenderID);
         }
+    }
+
+    public function GetActiveSceneFromScheduler()
+    {
+        // Retrieve the event ID for the scheduler
+        $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
+
+        if ($eventID !== false) {
+            // Get the event schedule information
+            $eventData = IPS_GetEvent($eventID);
+
+            // Go through the event actions to determine the active action
+            foreach ($eventData['ScheduleActions'] as $action) {
+                if ($action['Enabled']) {
+                    // Return the action ID, which corresponds to the scene number
+                    return $action['ID'];
+                }
+            }
+        }
+
+        // Log if no active scene was found
+        IPS_LogMessage("SceneControl", "No active scene found in the scheduler.");
+        return 0; // Return 0 if no active scene is found
     }
 
     public function RequestAction($Ident, $Value)
@@ -489,6 +566,30 @@ class SceneControl extends IPSModule
             }
         } else {
             echo $this->Translate('No saved data for this Scene');
+        }
+    }
+
+    public function TurnOff()
+    {
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
+        foreach ($targets as $target) {
+            $id = $target['VariableID'];
+            if (IPS_VariableExists($id)) {
+                switch (IPS_GetVariable($id)['VariableType']) {
+                    case 0: // Boolean
+                        RequestAction($id, false);
+                        break;
+                    case 1: // Integer
+                        RequestAction($id, 0);
+                        break;
+                    case 2: // Float
+                        RequestAction($id, 0.0);
+                        break;
+                    case 3: // String
+                        break;
+                    default:
+                }
+            }
         }
     }
 }

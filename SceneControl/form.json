@@ -1,4 +1,11 @@
 {
+    "actions": [
+        {
+            "type": "Button",
+            "label": "Auto Add Lights",
+            "onClick": "SZS_AutoAddLights($id);"
+        }
+    ],
     "elements": [
         {
             "type": "NumberSpinner",
