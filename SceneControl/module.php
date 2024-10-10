@@ -54,21 +54,21 @@ class SceneControl extends IPSModule
 
         // Define color mappings for specific scene names
         $colorMap = [
-            // "Immer Aus" => 0x292929,  // Aus (Off) -> DarkGrey
-            // "Immer An" => 0xFFFFFF,  // Aus (Off) -> DarkGrey
-            "Tag" => 0xADD8E6,  // Tag (Day) -> LightBlue
-            "Abend" => 0x0000A6,  // Tag (Day) -> LightBlue
-            "Nacht" => 0x00008B // Nacht (Night) -> DarkBlue
+            "Morgen" => 0xFFFACD,  // Morning (Morgen) -> LemonChiffon (light yellow)
+            "Tag" => 0xADD8E6,     // Day (Tag) -> LightBlue
+            "Abend" => 0xFFD700,   // Evening (Abend) -> Gold
+            "Nacht" => 0x00008B,   // Night (Nacht) -> DarkBlue
+            "Hell" => 0xFFFFFF     // Bright (Hell) -> White
         ];
 
-        // Define a list of generic colors to use for other scenes
+        // Define a list of generic colors to use for other scenes if needed
         $genericColorList = [
             0xFF6347, // Tomato
-            0xFFD700, // Gold
+            0xFFA500, // Orange
             0xADFF2F, // GreenYellow
             0x40E0D0, // Turquoise
             0xEE82EE, // Violet
-            0xFFA500, // Orange
+            0xFF1493, // DeepPink
             0xDC143C, // Crimson
             0x7FFF00  // Chartreuse
         ];
