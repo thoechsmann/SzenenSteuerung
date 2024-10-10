@@ -39,8 +39,80 @@ class SceneControl extends IPSModule
 
     public function CreateSchedulerEvent()
     {
-        $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
+        // Get or create the scheduler event
+        $eventID = $this->GetOrCreateSchedulerEvent();
 
+        // Define fixed color mappings for the first 5 scenes
+        $colorMap = [
+            1 => 0xFFD700,  // 'Morgen' -> Gold
+            2 => 0xADD8E6,  // 'Tag' -> LightBlue
+            3 => 0xFFA500,  // 'Abend' -> Orange
+            4 => 0x00008B,  // 'Nacht' -> DarkBlue
+            5 => 0xFFFFFF   // 'Hell' -> White
+        ];
+
+        // List of additional colors for extra scenes (if more than 5 scenes)
+        $extraColors = [
+            0xFF6347, // Tomato
+            0x40E0D0, // Turquoise
+            0xEE82EE, // Violet
+            0xDC143C, // Crimson
+            0x7FFF00, // Chartreuse
+            0x8A2BE2, // BlueViolet
+            0xFF4500  // OrangeRed
+        ];
+
+        // Keep track of used colors from the extraColors list
+        $usedColors = [];
+
+        // Loop through all scenes (starting from Scene1) and update scheduler actions
+        $sceneCount = $this->ReadPropertyInteger('SceneCount');
+        for ($i = 1; $i <= $sceneCount; $i++) {
+            $sceneIdent = "Scene$i";
+            $sceneVariableID = @$this->GetIDForIdent($sceneIdent);
+
+            if ($sceneVariableID !== false) {
+                $sceneName = IPS_GetName($sceneVariableID);
+
+                // Determine the color for the scene
+                if (isset($colorMap[$i])) {
+                    // Use predefined color for the first 5 scenes
+                    $color = $colorMap[$i];
+                } else {
+                    // Assign a random, unused color for additional scenes
+                    $availableColors = array_diff($extraColors, $usedColors);
+                    if (!empty($availableColors)) {
+                        $color = current($availableColors);
+                        $usedColors[] = $color; // Mark the color as used
+                    } else {
+                        // If we run out of unique colors, recycle colors
+                        $color = $extraColors[array_rand($extraColors)];
+                    }
+                }
+
+                // Define the script to call the specific scene
+                $actionScript = 'SZS_CallScene(' . $this->InstanceID . ', ' . $i . ');';
+
+                // Update the action for the scene in the scheduler
+                IPS_SetEventScheduleAction(
+                    $eventID,
+                    $i,                        // Action ID (matches the scene number)
+                    $sceneName,                // Action name (e.g., 'Morgen', 'Tag', etc.)
+                    $color,                    // Color for the action
+                    $actionScript              // The script to be executed when this action is triggered
+                );
+            }
+        }
+
+        // Activate the event
+        IPS_SetEventActive($eventID, true);
+        IPS_LogMessage("SceneControl", "Scheduler colors updated.");
+    }
+
+    private function GetOrCreateSchedulerEvent()
+    {
+        // Get or create the scheduler event
+        $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
         if ($eventID === false) {
             // Create the event if it doesn't exist
             $eventID = IPS_CreateEvent(2);
@@ -49,64 +121,54 @@ class SceneControl extends IPSModule
             IPS_SetName($eventID, 'Scene Scheduler');
             IPS_SetEventScheduleGroup($eventID, 0, 31); //Mo - Fr (1 + 2 + 4 + 8 + 16)
             IPS_SetEventScheduleGroup($eventID, 1, 96); //Sa + Su (32 + 64)
-
         }
 
-        // Define color mappings for specific scene names
+        return $eventID;
+    }
+
+    public function UpdateSchedulerColors()
+    {
+        // Get the event ID for the scheduler
+        $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
+
+        if ($eventID === false) {
+            IPS_LogMessage("SceneControl", "Scheduler event not found.");
+            return; // Exit if no scheduler event exists
+        }
+
+        // Define fixed color mappings for the scenes
         $colorMap = [
-            "Morgen" => 0xFFFACD,  // Morning (Morgen) -> LemonChiffon (light yellow)
-            "Tag" => 0xADD8E6,     // Day (Tag) -> LightBlue
-            "Abend" => 0xFFD700,   // Evening (Abend) -> Gold
-            "Nacht" => 0x00008B,   // Night (Nacht) -> DarkBlue
-            "Hell" => 0xFFFFFF     // Bright (Hell) -> White
+            1 => 0xFFD700,  // 'Morgen' -> Gold
+            2 => 0xADD8E6,  // 'Tag' -> LightBlue
+            3 => 0xFFA500,  // 'Abend' -> Orange
+            4 => 0x00008B,  // 'Nacht' -> DarkBlue
+            5 => 0xFFFFFF   // 'Hell' -> White
         ];
 
-        // Define a list of generic colors to use for other scenes if needed
-        $genericColorList = [
-            0xFF6347, // Tomato
-            0xFFA500, // Orange
-            0xADFF2F, // GreenYellow
-            0x40E0D0, // Turquoise
-            0xEE82EE, // Violet
-            0xFF1493, // DeepPink
-            0xDC143C, // Crimson
-            0x7FFF00  // Chartreuse
-        ];
+        // Loop through the scenes and set colors in the scheduler
+        foreach ($colorMap as $sceneNumber => $color) {
+            // Define the action script to call the scene
+            $actionScript = 'SZS_CallScene(' . $this->InstanceID . ', ' . $sceneNumber . ');';
 
-        // Add actions for each scene in the scheduler
-        $sceneCount = $this->ReadPropertyInteger('SceneCount');
-        $usedColors = []; // Track used colors for generic scenes
+            // Get the scene name based on the scene number
+            $sceneVariableID = @$this->GetIDForIdent("Scene$sceneNumber");
+            if ($sceneVariableID !== false) {
+                $sceneName = IPS_GetName($sceneVariableID);
 
-        for ($i = 1; $i <= $sceneCount; $i++) {
-            $sceneVariableID = @$this->GetIDForIdent("Scene$i"); // Get the variable ID for the scene
-            $sceneName = IPS_GetName($sceneVariableID); // Get the scene name from the variable ID
-
-            // Determine the color for the action
-            if (isset($colorMap[$sceneName])) {
-                // Use predefined color for specific names in colorMap
-                $color = $colorMap[$sceneName];
-            } else {
-                // Cycle through remaining colors in the genericColorList
-                $availableColors = array_diff($genericColorList, $usedColors); // Exclude already used colors
-                $color = current($availableColors) !== false ? current($availableColors) : $genericColorList[0]; // Cycle through colors
-                $usedColors[] = $color; // Mark this color as used
+                // Update the scheduler event with the action and corresponding color
+                IPS_SetEventScheduleAction(
+                    $eventID,
+                    $sceneNumber,              // Action ID (matches the scene number)
+                    $sceneName,                // Action name (e.g., 'Morgen', 'Tag', etc.)
+                    $color,                    // Color for the action
+                    $actionScript              // The script to be executed when this action is triggered
+                );
             }
-
-            // Define the script to call the specific scene
-            $actionScript = 'SZS_CallScene(' . $this->InstanceID . ', ' . $i . ');';
-
-            // Create an action for each scene
-            IPS_SetEventScheduleAction(
-                $eventID,
-                $i,                        // Action ID (Unique for each action)
-                $sceneName,                // Action name (e.g., 'Aus', 'Tag', 'Nacht', or Scene Name)
-                $color,                    // Color for the action in the scheduler UI
-                $actionScript              // The script to be executed when this action is triggered
-            );
         }
 
         // Activate the event
         IPS_SetEventActive($eventID, true);
+        IPS_LogMessage("SceneControl", "Scheduler colors updated for scenes.");
     }
 
     public function ApplyChanges()
@@ -440,32 +502,34 @@ class SceneControl extends IPSModule
         // Initialize an array to store found variables
         $foundVariables = [];
 
-        // Get the current list of targets (VariableID array)
-        $targets = json_decode($this->ReadPropertyString('Targets'), true);
-        $existingVariableIDs = array_column($targets, 'VariableID'); // Extract existing VariableIDs for quick lookup
-
         // Get all children recursively under the parent instance
         $allChildrenIDs = $this->GetAllChildrenRecursive($parentID);
+
+        // Define prefixes to match
+        $validPrefixes = ["Schalten", "Prozent", "Farbe"];
+
+        // Get the current list of targets (VariableID array)
+        $targets = json_decode($this->ReadPropertyString('Targets'), true);
+        $existingVariableIDs = array_column($targets, 'VariableID'); // Extract existing VariableIDs
 
         // Loop through each child object
         foreach ($allChildrenIDs as $childID) {
             // Check if the direct parent has the suffix "Licht"
             $parentObject = IPS_GetObject(IPS_GetParent($childID));
             if (strpos($parentObject['ObjectName'], 'Licht') !== false) {
-                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
+                // Check if the variable name starts with one of the valid prefixes
                 $variableName = IPS_GetName($childID);
-                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
-                    // Check if the VariableID is already in the list
-                    if (in_array($childID, $existingVariableIDs)) {
-                        IPS_LogMessage("SceneControl", "Skipped adding VariableID: $childID (already in the list).");
-                        continue; // Skip if VariableID is already in the list
+                foreach ($validPrefixes as $prefix) {
+                    if (strpos($variableName, $prefix) === 0) {
+                        // If the variable ID is not already in the list, add it
+                        if (!in_array($childID, $existingVariableIDs)) {
+                            $foundVariables[] = [
+                                "VariableID" => $childID,
+                                "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
+                            ];
+                        }
+                        break; // No need to check other prefixes once one is matched
                     }
-
-                    // Add the variable ID to the foundVariables array
-                    $foundVariables[] = [
-                        "VariableID" => $childID,
-                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
-                    ];
                 }
             }
         }
@@ -480,19 +544,18 @@ class SceneControl extends IPSModule
         IPS_ApplyChanges($this->InstanceID);
 
         // Log the result for debugging
-        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " new variables to Targets.");
+        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " variables to Targets.");
     }
 
-    // Recursive function to get all children at any level
+    // Helper function to get all children recursively
     private function GetAllChildrenRecursive($parentID)
     {
+        $allChildren = [];
         $children = IPS_GetChildrenIDs($parentID);
-        $allChildren = $children;
-
         foreach ($children as $childID) {
-            $allChildren = array_merge($allChildren, $this->GetAllChildrenRecursive($childID));
+            $allChildren[] = $childID;
+            $allChildren = array_merge($allChildren, $this->GetAllChildrenRecursive($childID)); // Recursively get sub-children
         }
-
         return $allChildren;
     }
 
@@ -528,6 +591,7 @@ class SceneControl extends IPSModule
         }
 
         // Apply changes after adding or renaming the scenes
+        $this->UpdateSchedulerColors();
         IPS_ApplyChanges($this->InstanceID);
     }
 
