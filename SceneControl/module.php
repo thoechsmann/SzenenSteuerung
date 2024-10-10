@@ -391,7 +391,7 @@ class SceneControl extends IPSModule
         $this->SetValue('ActiveScene', $this->getSceneName($SceneNumber));
     }
 
-    public function GetSceneNumberFromName($sceneName)
+    public function GetSceneNumberFromName(string $sceneName)
     {
         // Retrieve all scene variables (Scene1, Scene2, etc.)
         $childrenIDs = IPS_GetChildrenIDs($this->InstanceID);
@@ -418,24 +418,24 @@ class SceneControl extends IPSModule
         return $this->GetSceneNumberFromName($sceneName);
     }
 
-    public function AddVariable($Targets)
+    public function AddVariable(string $Targets)
     {
         $this->SendDebug('New Value', json_encode($Targets), 0);
         $form = json_decode($this->GetConfigurationForm(), true);
         $this->UpdateFormField('Targets', 'columns', json_encode($form['elements'][1]['columns']));
     }
 
-    public function AddTrigger($Triggers)
+    public function AddTrigger(string $Triggers)
     {
         $this->SendDebug('New Value', json_encode($Triggers), 0);
         $form = json_decode($this->GetConfigurationForm(), true);
         $this->UpdateFormField('Triggers', 'columns', json_encode($form['elements'][1]['columns']));
     }
 
-    public function AutoAddLights(int $instanceID)
+    public function AutoAddLights()
     {
         // Get the parent instance of the current instance
-        $parentID = IPS_GetParent($instanceID);
+        $parentID = IPS_GetParent($this->InstanceID);
 
         // Initialize an array to store found variables
         $foundVariables = [];
@@ -499,7 +499,7 @@ class SceneControl extends IPSModule
         return 0;
     }
 
-    private function getSceneName($sceneID)
+    private function getSceneName(int $sceneID)
     {
         if ($sceneID != 0) {
             return IPS_GetName($this->GetIDForIdent("Scene$sceneID"));
@@ -508,7 +508,7 @@ class SceneControl extends IPSModule
         }
     }
 
-    private function SaveValues($sceneIdent)
+    private function SaveValues(string $sceneIdent)
     {
         IPS_LogMessage("SceneControl", "SaveValues: " . $sceneIdent);
         $data = [];
@@ -532,7 +532,7 @@ class SceneControl extends IPSModule
         $this->WriteAttributeString('SceneData', json_encode($sceneData));
     }
 
-    private function CallValues($sceneIdent)
+    private function CallValues(string $sceneIdent)
     {
         $sceneData = json_decode($this->ReadAttributeString('SceneData'), true);
         IPS_LogMessage("SceneControl", "SceneData: " . $this->ReadAttributeString('SceneData'));
