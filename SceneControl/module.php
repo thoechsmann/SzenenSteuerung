@@ -440,25 +440,8 @@ class SceneControl extends IPSModule
         // Initialize an array to store found variables
         $foundVariables = [];
 
-        // Get all children recursively under the parent instance
-        $allChildrenIDs = IPS_GetChildrenIDs($parentID);
-
-        // Loop through each child object
-        foreach ($allChildrenIDs as $childID) {
-            // Check if the direct parent has the suffix "Licht"
-            $parentObject = IPS_GetObject(IPS_GetParent($childID));
-            if (strpos($parentObject['ObjectName'], 'Licht') !== false) {
-                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
-                $variableName = IPS_GetName($childID);
-                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
-                    // Add the variable ID to the foundVariables array
-                    $foundVariables[] = [
-                        "VariableID" => $childID,
-                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
-                    ];
-                }
-            }
-        }
+        // Recursive function to find matching variables in all child levels
+        $this->findMatchingVariablesRecursive($parentID, $foundVariables);
 
         // Get the current list of targets (VariableID array)
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
@@ -471,9 +454,75 @@ class SceneControl extends IPSModule
 
         // Apply the changes to refresh the configuration
         IPS_ApplyChanges($this->InstanceID);
+    }
 
-        // Log the result for debugging
-        IPS_LogMessage("SceneControl", "Added " . count($foundVariables) . " variables to Targets.");
+    // Recursive function to find variables matching the criteria
+    private function findMatchingVariablesRecursive($parentID, &$foundVariables)
+    {
+        // Get all children of the current parent
+        $childrenIDs = IPS_GetChildrenIDs($parentID);
+
+        // Loop through each child
+        foreach ($childrenIDs as $childID) {
+            // Check if the direct parent has the suffix "Licht"
+            $parentObject = IPS_GetObject(IPS_GetParent($childID));
+            $parentName = $parentObject['ObjectName'];
+
+            if (strpos($parentName, 'Licht') !== false) {
+                // Check if the variable name is "Farbe", "Schalten", or "Prozent"
+                $variableName = IPS_GetName($childID);
+
+                if (in_array($variableName, ["Farbe", "Schalten", "Prozent"])) {
+                    // Add the variable ID to the foundVariables array
+                    $foundVariables[] = [
+                        "VariableID" => $childID,
+                        "GUID" => $this->generateGUID()  // Generate a GUID for the new variable
+                    ];
+                }
+            }
+
+            // Check if the child is a category or instance to search recursively
+            if (IPS_GetObject($childID)['ObjectType'] == 0 || IPS_GetObject($childID)['ObjectType'] == 1) {
+                $this->findMatchingVariablesRecursive($childID, $foundVariables);  // Recursive call for deeper levels
+            }
+        }
+    }
+
+    public function AutoAddScenes()
+    {
+        // Define the scenes with their respective numbers
+        $scenesToAdd = [
+            1 => 'Morgen',
+            2 => 'Tag',
+            3 => 'Abend',
+            4 => 'Nacht',
+            5 => 'Hell'
+        ];
+
+        // Log the start of the process
+        IPS_LogMessage("SceneControl", "Starting AutoAddScenes process...");
+
+        // Loop through each scene and add it if it doesn't exist
+        foreach ($scenesToAdd as $sceneNumber => $sceneName) {
+            $sceneIdent = "Scene" . $sceneNumber;
+
+            // Check if the scene already exists
+            if (!@$this->GetIDForIdent($sceneIdent)) {
+                // Register the scene variable if it doesn't exist
+                $variableID = $this->RegisterVariableInteger($sceneIdent, $sceneName, 'SZS.SceneControl');
+                $this->EnableAction($sceneIdent);
+                SetValue($variableID, 2); // Default value, can be adjusted as needed
+
+                // Log the addition of the scene
+                IPS_LogMessage("SceneControl", "Added scene: " . $sceneName . " with ID: " . $variableID);
+            } else {
+                // Log that the scene already exists
+                IPS_LogMessage("SceneControl", "Scene '" . $sceneName . "' already exists.");
+            }
+        }
+
+        // Log the end of the process
+        IPS_LogMessage("SceneControl", "AutoAddScenes process completed.");
     }
 
     public function GetConfigurationForm()

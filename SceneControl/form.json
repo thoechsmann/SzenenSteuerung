@@ -4,6 +4,11 @@
             "type": "Button",
             "label": "Auto Add Lights",
             "onClick": "SZS_AutoAddLights($id);"
+        },
+        {
+            "type": "Button",
+            "label": "Auto Add Scenes",
+            "onClick": "SZS_AutoAddScenes($id);"
         }
     ],
     "elements": [
