@@ -320,113 +320,160 @@ class SceneControl extends IPSModule
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
+        // Debug log to see the exact flow of message calls
+        IPS_LogMessage("SceneControl", "MessageSink called. SenderID: $SenderID, Message: $Message, TimeStamp: $TimeStamp");
+
         if ($Message == EM_CHANGECYCLIC) {
-            // Handle the scheduler event trigger
-            $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
-
-            if ($SenderID == $eventID) {
-                $sceneNumber = $Data[0]; // The action ID corresponds to the scene number
-                IPS_LogMessage("SceneControl", "Scheduler event triggered. Calling Scene " . $sceneNumber);
-                $this->CallScene($sceneNumber); // Call the scene
-                return;
-            }
+            $this->HandleSchedulerEvent($SenderID, $Data);
         } else if ($Message == VM_UPDATE) {
-            // Check for trigger updates
-            $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
-
-            // Loop through the triggers to find if the SenderID matches any trigger's VariableID
-            foreach ($triggers as $trigger) {
-                if ($SenderID == $trigger['VariableID']) {
-                    // Get the current value of the trigger variable
-                    $triggerValue = GetValue($SenderID);
-
-                    // If SceneVariableID is empty, use the active scene from the scheduler
-                    if (empty($trigger['SceneVariableID'])) {
-                        $activeSceneNumber = $this->GetActiveSceneFromScheduler();
-                        IPS_LogMessage("SceneControl", "Trigger activated but no SceneVariableID, using active scene from scheduler: " . $activeSceneNumber);
-                        $this->CallScene($activeSceneNumber);
-                    } else {
-                        // If the trigger value is true, call the corresponding scene by its Scene VariableID
-                        $sceneVariableID = $trigger['SceneVariableID'];
-                        IPS_LogMessage("SceneControl", "Trigger activated for Scene Variable ID: " . $sceneVariableID);
-
-                        // Call the corresponding scene by the VariableID of the scene (SceneVariableID)
-                        $sceneIdent = IPS_GetObject($sceneVariableID)['ObjectIdent'];  // Get the scene's Ident
-                        $this->CallScene((int) filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT)); // Extract scene number and call it
-                    }
-
-                    // Once handled, exit the function early
-                    return;
-                }
-            }
-
-            // Handle IsOnId (if it exists)
-            $isOnId = $this->ReadPropertyInteger('IsOnId');
-            if ($SenderID == $isOnId) {
-                $isOnValue = GetValue($isOnId);
-                IPS_LogMessage("SceneControl", "IsOnId updated. New value: " . ($isOnValue ? "true" : "false"));
-
-                // If IsOnId is true, call the active scene
-                if ($isOnValue === true) {
-                    IPS_LogMessage("SceneControl", "IsOnId is true, calling the current scene.");
-                    $this->CallScene($this->GetActiveSceneNumber());
-                } else {
-                    $this->TurnOff();
-                }
-
-                // Once handled, exit the function early
-                return;
-            }
-
-            // If no triggers matched, log that the trigger was not found
-            IPS_LogMessage("SceneControl", "Trigger not found for SenderID: " . $SenderID);
+            $this->HandleVariableUpdate($SenderID);
         }
     }
 
-    public function GetActiveSceneFromScheduler()
+    // Method to handle the scheduler event trigger
+    private function HandleSchedulerEvent($SenderID, $Data)
     {
-        // Retrieve the event ID for the scheduler
         $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
 
-        if ($eventID !== false) {
-            // Get the event schedule information
-            $eventData = IPS_GetEvent($eventID);
+        if ($SenderID == $eventID) {
+            $sceneNumber = $Data[0]; // The action ID corresponds to the scene number
+            IPS_LogMessage("SceneControl", "Scheduler event triggered. Calling Scene " . $sceneNumber);
+            $this->CallScene($sceneNumber); // Call the scene
+        }
+    }
 
-            // Go through the event actions to determine the active action
-            foreach ($eventData['ScheduleActions'] as $action) {
-                if ($action['Enabled']) {
-                    // Return the action ID, which corresponds to the scene number
-                    return $action['ID'];
+    // Method to handle variable updates from triggers and IsOnId
+    private function HandleVariableUpdate($SenderID)
+    {
+        // Check for trigger updates
+        $this->CheckTriggers($SenderID);
+
+        // Handle IsOnId (if it exists)
+        $this->HandleIsOnUpdate($SenderID);
+    }
+
+    // Method to handle triggers based on SenderID
+    private function CheckTriggers($SenderID)
+    {
+        // Check for trigger updates
+        $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
+
+        foreach ($triggers as $trigger) {
+            if ($SenderID == $trigger['VariableID']) {
+                IPS_LogMessage("SceneControl", "Trigger activated for Sender Variable ID: " . $SenderID);
+                $triggerType = isset($trigger['Type']) ? (int)$trigger['Type'] : 0; // Default to SelectScene
+                $this->HandleTriggerByType($triggerType, $trigger);
+            }
+        }
+    }
+
+    // Method to handle trigger actions based on the trigger type
+    private function HandleTriggerByType(int $triggerType, array $trigger)
+    {
+        switch ($triggerType) {
+            case 0: // SelectScene
+                $this->HandleSelectScene($trigger);
+                break;
+            case 1: // ResetScene
+                $this->HandleResetScene();  // Using the reset scene logic for ResetScene triggers
+                break;
+            case 2: // TurnOff
+                $this->TurnOff();
+                break;
+            default:
+                IPS_LogMessage("SceneControl", "Unknown trigger type: " . $triggerType);
+                break;
+        }
+    }
+
+    // Method to handle SelectScene trigger type
+    private function HandleSelectScene(array $trigger)
+    {
+        // Call the corresponding scene by the VariableID of the scene (SceneVariableID)
+        $sceneVariableID = $trigger['SceneVariableID'];
+        IPS_LogMessage("SceneControl", "Trigger activated for Scene Variable ID: " . $sceneVariableID);
+
+        $sceneIdent = IPS_GetObject($sceneVariableID)['ObjectIdent'];  // Get the scene's Ident
+        $this->CallScene((int)filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT)); // Extract scene number and call it
+    }
+
+    // Method to handle ResetScene triggers
+    private function HandleResetScene()
+    {
+        $activeSceneNumber = $this->GetLastActiveSceneNumberFromScheduler();
+        IPS_LogMessage("SceneControl", "Reset triggered, using active scene from scheduler: " . $activeSceneNumber);
+        $this->CallScene($activeSceneNumber);
+    }
+
+    // Method to handle IsOnId updates
+    private function HandleIsOnUpdate($SenderID)
+    {
+        $isOnId = $this->ReadPropertyInteger('IsOnId');
+        if ($SenderID == $isOnId) {
+            $isOnValue = GetValue($isOnId);
+            IPS_LogMessage("SceneControl", "IsOnId updated. New value: " . ($isOnValue ? "true" : "false"));
+
+            if ($isOnValue === true) {
+                IPS_LogMessage("SceneControl", "IsOnId is true, calling the current scene.");
+                $this->CallScene($this->GetActiveSceneNumber());
+            } else {
+                $this->TurnOff();
+            }
+        }
+    }
+
+    public function GetLastActiveSceneNumberFromScheduler()
+    {
+        $eventID = @IPS_GetObjectIDByIdent('SceneSchedulerEvent', $this->InstanceID);
+
+        // Get the event data
+        $eventData = IPS_GetEvent($eventID);
+
+        // Get the current time
+        $currentTime = time();
+        $lastActivePoint = null;
+        $lastActiveTime = 0;
+
+        // Iterate through schedule groups
+        foreach ($eventData['ScheduleGroups'] as $group) {
+            foreach ($group['Points'] as $point) {
+                // Convert point time to UNIX timestamp
+                $pointHour = $point['Start']['Hour'];
+                $pointMinute = $point['Start']['Minute'];
+
+                // Calculate the timestamp for the point (today's date + point time)
+                $pointTime = mktime($pointHour, $pointMinute, 0);
+
+                // Check if the point has already occurred today
+                if ($pointTime <= $currentTime && $pointTime > $lastActiveTime) {
+                    // This is the most recent active point
+                    $lastActivePoint = $point;
+                    $lastActiveTime = $pointTime;
                 }
             }
         }
 
-        // Log if no active scene was found
-        IPS_LogMessage("SceneControl", "No active scene found in the scheduler.");
+        // If we found a last active point, return the ActionID (which is the scene number)
+        if ($lastActivePoint !== null) {
+            return $lastActivePoint['ActionID'];  // Return the ActionID as the scene number
+        }
+
+        // No active point was found
+        IPS_LogMessage("SceneControl", "No active schedule point found.");
         return 0; // Return 0 if no active scene is found
     }
+
+
 
     public function RequestAction($Ident, $Value)
     {
         switch ($Value) {
             case '1': // Save the scene
-                $this->SetValue('ActiveScene', IPS_GetName($this->GetIDForIdent($Ident)));
-                $this->SaveValues($Ident);
+                $this->SaveScene((int) filter_var($Ident, FILTER_SANITIZE_NUMBER_INT));
                 break;
 
             case '2': // Call the scene
                 $this->CallScene((int) filter_var($Ident, FILTER_SANITIZE_NUMBER_INT));
-                // $this->SetValue('ActiveScene', IPS_GetName($this->GetIDForIdent($Ident)));
-
-                // // Check if the IsOnId property is set and valid
-                // $isOnId = $this->ReadPropertyInteger('IsOnId');
-
-                // // Only execute the scene if the IsOnId variable is true
-                // if ($isOnId != 0 && GetValue($isOnId) === true) {
-                //     $this->CallValues($Ident);
-                // } else {
-                //     IPS_LogMessage("SceneControl", "Scene call skipped: IsOnId is not active (false) or not set.");
-                // }
                 break;
 
             default:
@@ -487,7 +534,7 @@ class SceneControl extends IPSModule
         $this->UpdateFormField('Targets', 'columns', json_encode($form['elements'][1]['columns']));
     }
 
-    public function AddTrigger(string $Triggers)
+    public function AddTrigger($Triggers)
     {
         $this->SendDebug('New Value', json_encode($Triggers), 0);
         $form = json_decode($this->GetConfigurationForm(), true);
