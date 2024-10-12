@@ -346,11 +346,11 @@ class SceneControl extends IPSModule
     // Method to handle variable updates from triggers and IsOnId
     private function HandleVariableUpdate($SenderID)
     {
-        // Check for trigger updates
-        $this->CheckTriggers($SenderID);
+        // // Check for trigger updates
+        // $this->CheckTriggers($SenderID);
 
-        // Handle IsOnId (if it exists)
-        $this->HandleIsOnUpdate($SenderID);
+        // // Handle IsOnId (if it exists)
+        // $this->HandleIsOnUpdate($SenderID);
     }
 
     // Method to handle triggers based on SenderID
