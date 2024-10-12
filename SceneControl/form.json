@@ -73,6 +73,29 @@
                     }
                 },
                 {
+                    "caption": "Type",
+                    "name": "Type",
+                    "width": "auto",
+                    "add": 0,
+                    "edit": {
+                        "type": "Select",
+                        "options": [
+                            {
+                                "caption": "Switch To Scene",
+                                "value": 0
+                            },
+                            {
+                                "caption": "Reset To Scheduled Scene",
+                                "value": 1
+                            },
+                            {
+                                "caption": "Turn Off",
+                                "value": 2
+                            }
+                        ]
+                    }
+                },
+                {
                     "caption": "SceneVariableID",
                     "name": "SceneVariableID",
                     "width": "auto",
