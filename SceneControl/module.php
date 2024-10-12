@@ -311,12 +311,12 @@ class SceneControl extends IPSModule
         // Register the triggers for message updates
         $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
 
-        foreach ($triggers as $trigger) {
-            $triggerVariableID = $trigger['VariableID'];
-            if (IPS_VariableExists($triggerVariableID)) {
-                $this->RegisterMessage($triggerVariableID, VM_UPDATE); // Register for variable updates
-            }
-        }
+        // foreach ($triggers as $trigger) {
+        //     $triggerVariableID = $trigger['VariableID'];
+        //     if (IPS_VariableExists($triggerVariableID)) {
+        //         $this->RegisterMessage($triggerVariableID, VM_UPDATE); // Register for variable updates
+        //     }
+        // }
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
