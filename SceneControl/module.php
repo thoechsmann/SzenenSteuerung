@@ -771,17 +771,17 @@ class SceneControl extends IPSModule
             $id = $target['VariableID'];
             if (IPS_VariableExists($id)) {
                 switch (IPS_GetVariable($id)['VariableType']) {
-                    case 0: // Boolean
+                    case 0: // Boolean. We only switch off lights.
                         RequestAction($id, false);
                         break;
-                    case 1: // Integer
-                        RequestAction($id, 0);
-                        break;
-                    case 2: // Float
-                        RequestAction($id, 0.0);
-                        break;
-                    case 3: // String
-                        break;
+                        // case 1: // Integer
+                        //     RequestAction($id, 0);
+                        //     break;
+                        // case 2: // Float
+                        //     RequestAction($id, 0.0);
+                        //     break;
+                        // case 3: // String
+                        //     break;
                     default:
                 }
             }
