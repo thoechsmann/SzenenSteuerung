@@ -464,8 +464,6 @@ class SceneControl extends IPSModule
         return 0; // Return 0 if no active scene is found
     }
 
-
-
     public function RequestAction($Ident, $Value)
     {
         switch ($Value) {
@@ -500,7 +498,7 @@ class SceneControl extends IPSModule
         $isOnId = $this->ReadPropertyInteger('IsOnId');
 
         // Only execute the scene if the IsOnId variable is true
-        if ($isOnId != 0 && GetValue($isOnId) === true) {
+        if ($turnOn || ($isOnId != 0 && GetValue($isOnId) === true)) {
             $this->CallValues("Scene$SceneNumber");
         }
     }
