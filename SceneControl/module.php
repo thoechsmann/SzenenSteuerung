@@ -16,6 +16,7 @@ class SceneControl extends IPSModule
         $this->RegisterPropertyString('Targets', '[]');
         $this->RegisterPropertyString('Triggers', '[]');
         $this->RegisterPropertyInteger('IsOnId', 0);
+        $this->RegisterPropertyInteger('ExternalInputLight', 0);
 
         //Attributes
         $this->RegisterAttributeString('SceneData', '[]');
