@@ -356,16 +356,42 @@ class SceneControl extends IPSModule
     // Method to handle triggers based on SenderID
     private function CheckTriggers($SenderID)
     {
-        // Check for trigger updates
+        // Retrieve triggers from properties
         $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
 
         foreach ($triggers as $trigger) {
             if ($SenderID == $trigger['VariableID']) {
-                IPS_LogMessage("SceneControl", "Trigger activated for Sender Variable ID: " . $SenderID);
-                $triggerType = isset($trigger['Type']) ? (int)$trigger['Type'] : 0; // Default to SelectScene
-                $this->HandleTriggerByType($triggerType, $trigger);
+                // Get both scene names from the trigger
+                $newSceneName1 = $this->GetSceneNameFor($trigger['Type1'], $trigger['SceneVariableID1']);
+                $newSceneName2 = isset($trigger['SceneVariableID2']) ? $this->GetSceneNameFor($trigger['Type2'], $trigger['SceneVariableID2']) : null;
+
+                // Get the currently active scene name
+                $currentSceneName = $this->GetValue('ActiveScene');
+
+                // Determine the new scene to activate based on current scene
+                $sceneToActivate = $newSceneName1;
+                if ($currentSceneName === $newSceneName1 && $newSceneName2 !== null) {
+                    // If current scene is Scene 1 and Scene 2 is set, switch to Scene 2
+                    $sceneToActivate = $newSceneName2;
+                }
+
+                // Call the selected scene and turn it on
+                $this->CallScene($this->GetSceneNumberFromName($sceneToActivate), true);
+                return;
             }
         }
+    }
+
+    private function GetSceneNameFor($type, $sceneVariableID)
+    {
+        // If the type is reset (Type 1), get the scheduler's active scene
+        if ($type === 1) {
+            $sceneNumber = $this->GetLastActiveSceneNumberFromScheduler();
+            return $this->getSceneName($sceneNumber); // Return the scheduled scene name
+        }
+
+        // Otherwise, get the name of the scene by the SceneVariableID
+        return IPS_GetName($sceneVariableID);
     }
 
     // Method to handle trigger actions based on the trigger type
@@ -716,7 +742,6 @@ class SceneControl extends IPSModule
         IPS_LogMessage("SceneControl", "i: " . $i);
 
         $data = $sceneData[$i - 1];
-        // IPS_LogMessage("SceneControl", "date: " . $data);
 
         if (count($data) > 0) {
             foreach ($data as $guid => $value) {

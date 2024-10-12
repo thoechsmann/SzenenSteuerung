@@ -73,8 +73,8 @@
                     }
                 },
                 {
-                    "caption": "Type",
-                    "name": "Type",
+                    "caption": "Type1",
+                    "name": "Type1",
                     "width": "auto",
                     "add": 0,
                     "edit": {
@@ -96,8 +96,40 @@
                     }
                 },
                 {
-                    "caption": "SceneVariableID",
-                    "name": "SceneVariableID",
+                    "caption": "SceneVariableID1",
+                    "name": "SceneVariableID1",
+                    "width": "auto",
+                    "add": "",
+                    "edit": {
+                        "type": "SelectVariable"
+                    }
+                },
+                {
+                    "caption": "Type2",
+                    "name": "Type2",
+                    "width": "auto",
+                    "add": 0,
+                    "edit": {
+                        "type": "Select",
+                        "options": [
+                            {
+                                "caption": "Switch To Scene",
+                                "value": 0
+                            },
+                            {
+                                "caption": "Reset To Scheduled Scene",
+                                "value": 1
+                            },
+                            {
+                                "caption": "Turn Off",
+                                "value": 2
+                            }
+                        ]
+                    }
+                },
+                {
+                    "caption": "SceneVariableID2",
+                    "name": "SceneVariableID2",
                     "width": "auto",
                     "add": "",
                     "edit": {
