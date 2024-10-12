@@ -86,7 +86,12 @@
         {
             "type": "SelectVariable",
             "name": "IsOnId",
-            "caption": "IsOnId"
+            "caption": "BM IsOnId"
+        },
+        {
+            "type": "SelectVariable",
+            "name": "ExternalInputLight",
+            "caption": "BM Externer Eingang"
         }
     ]
 }
