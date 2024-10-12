@@ -361,6 +361,11 @@ class SceneControl extends IPSModule
 
         foreach ($triggers as $trigger) {
             if ($SenderID == $trigger['VariableID']) {
+                if ($trigger['Type1'] == 2) {
+                    $this->TurnOff();
+                    return;
+                }
+
                 // Get both scene names from the trigger
                 $newSceneName1 = $this->GetSceneNameFor($trigger['Type1'], $trigger['SceneVariableID1']);
                 $newSceneName2 = isset($trigger['SceneVariableID2']) ? $this->GetSceneNameFor($trigger['Type2'], $trigger['SceneVariableID2']) : null;
@@ -392,25 +397,6 @@ class SceneControl extends IPSModule
 
         // Otherwise, get the name of the scene by the SceneVariableID
         return IPS_GetName($sceneVariableID);
-    }
-
-    // Method to handle trigger actions based on the trigger type
-    private function HandleTriggerByType(int $triggerType, array $trigger)
-    {
-        switch ($triggerType) {
-            case 0: // SelectScene
-                $this->HandleSelectScene($trigger);
-                break;
-            case 1: // ResetScene
-                $this->HandleResetScene();  // Using the reset scene logic for ResetScene triggers
-                break;
-            case 2: // TurnOff
-                $this->TurnOff();
-                break;
-            default:
-                IPS_LogMessage("SceneControl", "Unknown trigger type: " . $triggerType);
-                break;
-        }
     }
 
     // Method to handle SelectScene trigger type
