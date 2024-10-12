@@ -369,6 +369,7 @@ class SceneControl extends IPSModule
                 // Get both scene names from the trigger
                 $newSceneName1 = $this->GetSceneNameFor($trigger['Type1'], $trigger['SceneVariableID1']);
                 $newSceneName2 = isset($trigger['SceneVariableID2']) ? $this->GetSceneNameFor($trigger['Type2'], $trigger['SceneVariableID2']) : null;
+                IPS_LogMessage("SceneControl", "Trigger activated for Scene Names: " . $newSceneName1 . " and " . $newSceneName2);
 
                 // Get the currently active scene name
                 $currentSceneName = $this->GetValue('ActiveScene');
@@ -377,6 +378,7 @@ class SceneControl extends IPSModule
                 $sceneToActivate = $newSceneName1;
                 if ($currentSceneName === $newSceneName1 && $newSceneName2 !== null) {
                     // If current scene is Scene 1 and Scene 2 is set, switch to Scene 2
+                    IPS_LogMessage("SceneControl", "Switching to Scene 2.");
                     $sceneToActivate = $newSceneName2;
                 }
 
