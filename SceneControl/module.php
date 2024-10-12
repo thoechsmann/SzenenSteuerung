@@ -312,6 +312,7 @@ class SceneControl extends IPSModule
         $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
 
         foreach ($triggers as $trigger) {
+            IPS_LogMessage("SceneControl", "Registering trigger for VariableID: " . $trigger['VariableID']);
             $triggerVariableID = $trigger['VariableID'];
             if (IPS_VariableExists($triggerVariableID)) {
                 $this->RegisterMessage($triggerVariableID, VM_UPDATE); // Register for variable updates
@@ -346,11 +347,11 @@ class SceneControl extends IPSModule
     // Method to handle variable updates from triggers and IsOnId
     private function HandleVariableUpdate($SenderID)
     {
-        // // Check for trigger updates
-        // $this->CheckTriggers($SenderID);
+        // Check for trigger updates
+        $this->CheckTriggers($SenderID);
 
-        // // Handle IsOnId (if it exists)
-        // $this->HandleIsOnUpdate($SenderID);
+        // Handle IsOnId (if it exists)
+        $this->HandleIsOnUpdate($SenderID);
     }
 
     // Method to handle triggers based on SenderID
