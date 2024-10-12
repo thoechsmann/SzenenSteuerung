@@ -553,7 +553,7 @@ class SceneControl extends IPSModule
         $allChildrenIDs = $this->GetAllChildrenRecursive($parentID);
 
         // Define prefixes to match
-        $validPrefixes = ["Schalten", "Prozent", "Farbe"];
+        $validPrefixes = ["Schalten", "Prozent", "Farbe", "RGB", "Wert"];
 
         // Get the current list of targets (VariableID array)
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
@@ -737,6 +737,8 @@ class SceneControl extends IPSModule
 
     public function TurnOff()
     {
+        RequestAction($this->ReadPropertyInteger('ExternalInputLight'), false);
+
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
         foreach ($targets as $target) {
             $id = $target['VariableID'];
