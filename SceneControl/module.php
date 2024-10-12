@@ -395,7 +395,7 @@ class SceneControl extends IPSModule
         IPS_LogMessage("SceneControl", "Trigger activated for Scene Variable ID: " . $sceneVariableID);
 
         $sceneIdent = IPS_GetObject($sceneVariableID)['ObjectIdent'];  // Get the scene's Ident
-        $this->CallScene((int)filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT)); // Extract scene number and call it
+        $this->CallScene((int)filter_var($sceneIdent, FILTER_SANITIZE_NUMBER_INT), true); // Extract scene number and call it
     }
 
     // Method to handle ResetScene triggers
@@ -403,7 +403,7 @@ class SceneControl extends IPSModule
     {
         $activeSceneNumber = $this->GetLastActiveSceneNumberFromScheduler();
         IPS_LogMessage("SceneControl", "Reset triggered, using active scene from scheduler: " . $activeSceneNumber);
-        $this->CallScene($activeSceneNumber);
+        $this->CallScene($activeSceneNumber, true);
     }
 
     // Method to handle IsOnId updates
@@ -482,8 +482,18 @@ class SceneControl extends IPSModule
         }
     }
 
-    public function CallScene(int $SceneNumber)
+    public function CallScene(int $SceneNumber, bool $turnOn = false)
     {
+        // If TurnOn is true, trigger the ExternalInputLight
+        if ($turnOn) {
+            $externalInputLightID = $this->ReadPropertyInteger('ExternalInputLight');
+            if ($externalInputLightID != 0 && IPS_VariableExists($externalInputLightID)) {
+                RequestAction($externalInputLightID, true);
+                IPS_LogMessage("SceneControl", "ExternalInputLight turned on.");
+            }
+        }
+
+        // Set the Active Scene
         $this->SetValue('ActiveScene', $this->getSceneName($SceneNumber));
 
         // Check if the IsOnId property is set and valid
@@ -738,7 +748,11 @@ class SceneControl extends IPSModule
 
     public function TurnOff()
     {
-        RequestAction($this->ReadPropertyInteger('ExternalInputLight'), false);
+        $externalInputLightID = $this->ReadPropertyInteger('ExternalInputLight');
+        if ($externalInputLightID != 0 && IPS_VariableExists($externalInputLightID)) {
+            RequestAction($externalInputLightID, false);
+            IPS_LogMessage("SceneControl", "ExternalInputLight turned off.");
+        }
 
         $targets = json_decode($this->ReadPropertyString('Targets'), true);
         foreach ($targets as $target) {
