@@ -92,7 +92,7 @@ class SceneControl extends IPSModule
                 }
 
                 // Define the script to call the specific scene
-                $actionScript = 'SZS_CallScene(' . $this->InstanceID . ', ' . $i . ');';
+                $actionScript = 'SZS_CallScene(' . $this->InstanceID . ', ' . $i . ', false);';
 
                 // Update the action for the scene in the scheduler
                 IPS_SetEventScheduleAction(
@@ -312,7 +312,6 @@ class SceneControl extends IPSModule
         $triggers = json_decode($this->ReadPropertyString('Triggers'), true);
 
         foreach ($triggers as $trigger) {
-            IPS_LogMessage("SceneControl", "Registering trigger for VariableID: " . $trigger['VariableID']);
             $triggerVariableID = $trigger['VariableID'];
             if (IPS_VariableExists($triggerVariableID)) {
                 $this->RegisterMessage($triggerVariableID, VM_UPDATE); // Register for variable updates
